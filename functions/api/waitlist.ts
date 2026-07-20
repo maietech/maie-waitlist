@@ -92,9 +92,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     });
     if (resp.ok) {
       await env.DB.prepare(`UPDATE signups SET notified = 1 WHERE email = ?`).bind(email).run();
+    } else {
+      // TEMP DEBUG — remove once notifications are confirmed working.
+      const errBody = await resp.text();
+      console.log(`Resend failed: status=${resp.status} body=${errBody}`);
     }
-  } catch {
-    // swallow — signup already saved, notification can be reconciled later
+  } catch (e: any) {
+    // TEMP DEBUG — remove once notifications are confirmed working.
+    console.log(`Resend threw: ${e?.message || e}`);
   }
 
   return json({ ok: true });
