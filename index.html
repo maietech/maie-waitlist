@@ -71,6 +71,13 @@
     padding: 11px 12px; color: var(--text-1); font-family: var(--font-ui); font-size: 14px;
   }
   input:focus, select:focus { outline: none; border-color: var(--primary-light); }
+  /* The closed <select> box correctly picks up the page's dark theme, but
+     the native options popup is drawn by the browser with its own white
+     background regardless — so the same light --text-1 color meant for
+     dark surfaces became near-invisible there except on the hovered row
+     (which browsers force to white-on-blue). Force dark text explicitly
+     for the popup only. */
+  select option { color: #1a1a1a; background: #ffffff; }
   .wl-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .wl-hp { position: absolute; left: -9999px; opacity: 0; }
   button[type="submit"] {
