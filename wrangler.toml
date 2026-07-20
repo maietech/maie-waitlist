@@ -9,4 +9,4 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "maie_waitlist"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "c635d150-8a38-4a97-8e0d-bab7ecf42db2"
