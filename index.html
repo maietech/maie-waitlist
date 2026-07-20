@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAIE — Join the Waitlist</title>
+<meta name="description" content="Be first in line for MAIE — the AI-native media production suite. Join the waitlist.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Same brand tokens as portal.joinmaie.com's maie-tokens.css — kept
+     in sync manually since this is a separate Cloudflare Pages project.
+     If the brand red ever changes again, update BOTH places. */
+  :root {
+    --primary: #A52A2A;
+    --primary-light: #C24E4E;
+    --primary-glow: rgba(165,42,42,0.32);
+    --bg: #09090B;
+    --surface: #111318;
+    --border: rgba(255,255,255,0.09);
+    --text-1: rgba(232,230,227,0.94);
+    --text-2: rgba(232,230,227,0.60);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .wl-glow {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, var(--primary-glow), transparent 70%);
+  }
+  .wl-card {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+  }
+  .wl-tag {
+    font-family: var(--font-mono);
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--primary-light); margin-bottom: 10px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 6vw, 48px);
+    letter-spacing: 0.02em;
+    margin: 0 0 12px;
+    line-height: 1;
+  }
+  .wl-sub {
+    color: var(--text-2); font-size: 15px; line-height: 1.5; margin: 0 0 28px;
+  }
+  form { display: flex; flex-direction: column; gap: 14px; }
+  label { font-size: 13px; color: var(--text-2); margin-bottom: 4px; display: block; }
+  input, select {
+    width: 100%; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 12px; color: var(--text-1); font-family: var(--font-ui); font-size: 14px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary-light); }
+  .wl-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .wl-hp { position: absolute; left: -9999px; opacity: 0; }
+  button[type="submit"] {
+    margin-top: 8px; background: var(--primary); color: #fff; border: none;
+    border-radius: 8px; padding: 13px 20px; font-size: 15px; font-weight: 600;
+    font-family: var(--font-ui); cursor: pointer; transition: background 0.15s ease;
+  }
+  button[type="submit"]:hover { background: var(--primary-light); }
+  button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+  .wl-msg { font-size: 14px; margin-top: 4px; min-height: 20px; }
+  .wl-msg.ok { color: #6fbf8a; }
+  .wl-msg.err { color: #d97b7b; }
+  .wl-footer { margin-top: 24px; font-size: 12px; color: var(--text-2); text-align: center; }
+  .wl-footer a { color: var(--primary-light); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wl-glow"></div>
+<div class="wl-card">
+  <div class="wl-tag">MAIE — EARLY ACCESS</div>
+  <h1>Join the waitlist</h1>
+  <p class="wl-sub">Be first in line when MAIE opens up. A few quick details help us prioritize the right people first.</p>
+
+  <form id="wl-form">
+    <input class="wl-hp" type="text" name="company_website" tabindex="-1" autocomplete="off">
+
+    <div>
+      <label for="email">Email *</label>
+      <input type="email" id="email" name="email" required placeholder="you@example.com">
+    </div>
+
+    <div class="wl-row2">
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Jane Doe">
+      </div>
+      <div>
+        <label for="company">Company</label>
+        <input type="text" id="company" name="company" placeholder="Optional">
+      </div>
+    </div>
+
+    <div class="wl-row2">
+      <div>
+        <label for="role">Role</label>
+        <input type="text" id="role" name="role" placeholder="e.g. CTO, Editor">
+      </div>
+      <div>
+        <label for="github_user">GitHub username</label>
+        <input type="text" id="github_user" name="github_user" placeholder="Optional">
+      </div>
+    </div>
+
+    <div>
+      <label for="found_via">How did you hear about us?</label>
+      <select id="found_via" name="found_via">
+        <option value="">Select one</option>
+        <option value="github">GitHub</option>
+        <option value="twitter_x">Twitter / X</option>
+        <option value="referral">Referral</option>
+        <option value="search">Search engine</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div>
+      <label>What are you interested in?</label>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" name="interests" value="ai_agents" style="width:auto;"> AI agents
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" name="interests" value="oss" style="width:auto;"> Open source
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" name="interests" value="video_tools" style="width:auto;"> Video tools
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" name="interests" value="marketplace" style="width:auto;"> Marketplace
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" id="wl-submit">Join the waitlist</button>
+    <div class="wl-msg" id="wl-msg"></div>
+  </form>
+
+  <div class="wl-footer">
+    Source and docs on <a href="https://github.com/maie" target="_blank" rel="noopener">GitHub</a>.
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('wl-form');
+  const msg = document.getElementById('wl-msg');
+  const btn = document.getElementById('wl-submit');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.textContent = '';
+    msg.className = 'wl-msg';
+    btn.disabled = true;
+    btn.textContent = 'Joining…';
+
+    const fd = new FormData(form);
+    const payload = {
+      email: fd.get('email'),
+      name: fd.get('name'),
+      company: fd.get('company'),
+      role: fd.get('role'),
+      github_user: fd.get('github_user'),
+      found_via: fd.get('found_via'),
+      interests: fd.getAll('interests'),
+      company_website: fd.get('company_website'), // honeypot
+    };
+
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
+        msg.classList.add('ok');
+        form.reset();
+      } else {
+        msg.textContent = data.error || 'Something went wrong. Try again.';
+        msg.classList.add('err');
+      }
+    } catch {
+      msg.textContent = 'Network error — please try again.';
+      msg.classList.add('err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Join the waitlist';
+    }
+  });
+</script>
+</body>
+</html>

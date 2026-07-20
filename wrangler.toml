@@ -1,0 +1,12 @@
+name = "maie-waitlist"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "."
+
+# Fill in database_id after creating the D1 database (see README, Step 1).
+# This lets `wrangler pages dev` bind D1 locally; the binding also needs
+# to be added once in the Pages dashboard (Settings -> Functions -> D1
+# database bindings) for the deployed site to see it.
+[[d1_databases]]
+binding = "DB"
+database_name = "maie_waitlist"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
