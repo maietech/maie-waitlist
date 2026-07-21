@@ -17,6 +17,7 @@
     --primary: #A52A2A;
     --primary-light: #C24E4E;
     --primary-glow: rgba(165,42,42,0.32);
+    --accent-blue: #2E86E8;
     --bg: #09090B;
     --surface: #111318;
     --border: rgba(255,255,255,0.09);
@@ -33,6 +34,7 @@
     --primary: #772E25;
     --primary-light: #A52A2A;
     --primary-glow: rgba(119,46,37,0.18);
+    --accent-blue: #0065B3;
     --bg: #EDEEF1;
     --surface: #FFFFFF;
     --border: rgba(0,0,0,0.10);
@@ -53,6 +55,7 @@
     transition: background 0.22s ease, color 0.22s ease;
   }
   .wl-header {
+    position: relative; z-index: 2;
     width: 100%; max-width: 480px;
     display: flex; align-items: center; justify-content: space-between;
     padding: 20px 0 8px;
@@ -62,13 +65,73 @@
     font-size: 18px; letter-spacing: 0.02em; color: var(--text-1);
   }
   .wl-main {
+    position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: center;
     width: 100%; flex: 1;
   }
-  .wl-glow {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background: radial-gradient(ellipse 60% 50% at 50% 0%, var(--primary-glow), transparent 70%);
+  /* ── Ambient background flare ─────────────────────────────────────
+     Subtler port of the splash page's .sp-bg orb system: three blurred,
+     low-opacity brand-color orbs + a faint grain layer, no parallax
+     (this page doesn't scroll). Sits behind .wl-header/.wl-main via
+     z-index; fully theme-aware since orb colors are var(--*) tokens. */
+  .wl-bg {
+    position: fixed; inset: 0; z-index: 0;
+    overflow: hidden; pointer-events: none;
   }
+  .wl-bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.22;
+    mix-blend-mode: normal;
+  }
+  [data-theme="light"] .wl-bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
+  .wl-bg-orb-1 {
+    background: var(--primary);
+    width: 480px; height: 480px;
+    top: -12%; left: 15%;
+  }
+  .wl-bg-orb-2 {
+    background: var(--accent-blue);
+    width: 380px; height: 380px;
+    top: 35%; right: -8%;
+  }
+  .wl-bg-orb-3 {
+    background: var(--primary-light);
+    width: 340px; height: 340px;
+    bottom: -14%; left: 8%;
+  }
+  .wl-grain {
+    position: fixed; inset: 0; z-index: 1;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Background video (inactive scaffold) ───────────────────────────
+     Not wired up — no <video> element is rendered below. Once a
+     self-hosted mp4/webm is available (see README note near the
+     bottom of this file), add:
+       <video class="wl-bg-video" autoplay muted loop playsinline>
+         <source src="/bg-loop.mp4" type="video/mp4">
+       </video>
+     as the FIRST child of <body>, before .wl-bg, and it will sit under
+     the gradient + orbs automatically (z-index below both). Keep the
+     orb layer's opacity low in that case — it's meant to tint the
+     video, not compete with it. */
+  .wl-bg-video {
+    position: fixed; inset: 0; z-index: -1;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: saturate(0.85) brightness(0.6);
+  }
+  .wl-bg-video-overlay {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, var(--bg) 0%, transparent 30%, transparent 70%, var(--bg) 100%),
+                radial-gradient(ellipse 70% 50% at 50% 0%, var(--primary-glow), transparent 65%);
+  }
+
   .wl-card {
     position: relative; z-index: 1;
     width: 100%; max-width: 480px;
@@ -155,7 +218,14 @@
 </style>
 </head>
 <body>
-<div class="wl-glow"></div>
+<!-- Video background scaffold lives here, inactive — see the
+     .wl-bg-video comment in <style> above for how to wire it in. -->
+<div class="wl-bg">
+  <div class="wl-bg-orb wl-bg-orb-1"></div>
+  <div class="wl-bg-orb wl-bg-orb-2"></div>
+  <div class="wl-bg-orb wl-bg-orb-3"></div>
+</div>
+<div class="wl-grain"></div>
 <header class="wl-header">
   <span class="wl-header-brand">MAIE</span>
   <button class="mnav-theme-toggle" id="mnav-theme-toggle" type="button">
