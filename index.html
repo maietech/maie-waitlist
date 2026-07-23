@@ -18,6 +18,7 @@
     --primary-light: #C24E4E;
     --primary-glow: rgba(165,42,42,0.32);
     --accent-blue: #2E86E8;
+    --accent: #FFD166;
     --bg: #09090B;
     --surface: #111318;
     --border: rgba(255,255,255,0.09);
@@ -35,6 +36,7 @@
     --primary-light: #A52A2A;
     --primary-glow: rgba(119,46,37,0.18);
     --accent-blue: #0065B3;
+    --accent: #B8860B;
     --bg: #EDEEF1;
     --surface: #FFFFFF;
     --border: rgba(0,0,0,0.10);
@@ -63,6 +65,30 @@
   .wl-header-brand {
     font-family: var(--font-display);
     font-size: 18px; letter-spacing: 0.02em; color: var(--text-1);
+  }
+  /* Wraps the wordmark + signal icon into one link back to the main
+     site — same treatment as .nav-brand on joinmaie.com (color + a
+     plain transition, no underline, icon inherits currentColor via
+     --primary-light stroke token). */
+  .wl-header-brand-link {
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; color: var(--text-1);
+    transition: color 0.3s ease;
+  }
+  .wl-brand-icon { width: 26px; height: auto; flex-shrink: 0; }
+  /* Same small-link treatment as the main site's .nav-link: 14px, muted
+     by default, brightens on hover — kept here so the waitlist reads as
+     the same product rather than a disconnected form page. */
+  .wl-nav-links { display: flex; align-items: center; gap: 18px; }
+  .wl-nav-link {
+    font-size: 14px; color: var(--text-2); text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  .wl-nav-link:hover { color: var(--text-1); }
+  @media (max-width: 380px) {
+    .wl-nav-links { gap: 12px; }
+    .wl-nav-link { font-size: 12.5px; }
+    .wl-header-brand { font-size: 16px; }
   }
   .wl-main {
     position: relative; z-index: 2;
@@ -227,13 +253,27 @@
 </div>
 <div class="wl-grain"></div>
 <header class="wl-header">
-  <span class="wl-header-brand">MAIE</span>
-  <button class="mnav-theme-toggle" id="mnav-theme-toggle" type="button">
-    <span class="mnav-theme-track">
-      <span class="mnav-theme-thumb" id="mnav-theme-thumb"></span>
-    </span>
-    <span class="mnav-theme-label" id="mnav-theme-label"></span>
-  </button>
+  <a class="wl-header-brand-link" href="https://joinmaie.com">
+    <span class="wl-header-brand">MAIE</span>
+    <svg class="wl-brand-icon" viewBox="0 0 92 56" fill="none" stroke="var(--primary-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
+               C 29,20 33,20 33,30 C 33,40 39,40 41,28
+               L 46,44 L 50,20 L 54,38
+               C 58,26 63,26 63,34 C 63,40 68,38 70,32
+               Q 73,29 76,32 T 84,32"/>
+      <circle cx="86" cy="32" r="3" fill="var(--accent)" stroke="none"/>
+      <circle cx="86" cy="32" r="6.5" fill="none" stroke="var(--accent)" stroke-width="1" opacity="0.4"/>
+    </svg>
+  </a>
+  <div class="wl-nav-links">
+    <a class="wl-nav-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
+    <button class="mnav-theme-toggle" id="mnav-theme-toggle" type="button">
+      <span class="mnav-theme-track">
+        <span class="mnav-theme-thumb" id="mnav-theme-thumb"></span>
+      </span>
+      <span class="mnav-theme-label" id="mnav-theme-label"></span>
+    </button>
+  </div>
 </header>
 <div class="wl-main">
 <div class="wl-card">
