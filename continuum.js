@@ -31,10 +31,27 @@
     var skipLink = document.getElementById('skip-link');
     var ghLink = document.querySelector('.wl-corner-gh');
 
+    // On a tall revealed multi-stage form (any viewport short enough that
+    // the fields + submit button don't all fit at once — an iPad in
+    // particular), reaching "Reserve my spot" already requires scrolling
+    // partway down. Nothing else here resets that, so without this,
+    // "You're in." can render far below the fold, or even fully above the
+    // viewport — reported as empty space / the headline being "too far
+    // down." Instant, not smooth: this is the quiet beat before the
+    // headline fades in, not a moment for its own scroll animation.
+    window.scrollTo(0, 0);
+
     // The corner easter eggs (plain-form skip link, GitHub) belonged to
     // the form scene. Nothing left for them to point at once it's gone.
     if (skipLink) skipLink.style.display = 'none';
     if (ghLink) ghLink.style.display = 'none';
+
+    // Lets .wl-main drop its form-oriented top padding and become a true
+    // full-viewport centering box instead (see index.html) — otherwise
+    // "You're in." centers within whatever space is left under that
+    // padding rather than the actual screen, which reads as "too far
+    // down" on shorter viewports (reported on an iPad-sized one).
+    document.body.classList.add('continuum-active');
 
     if (formStage) formStage.classList.add('wl-form-stage-hidden');
     if (headline) headline.textContent = opts.alreadyJoined ? "You're already in." : "You're in.";

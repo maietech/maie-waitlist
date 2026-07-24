@@ -186,7 +186,21 @@
     width: 100%; flex: 1;
     padding-top: clamp(48px, 12vh, 120px);
   }
+  /* Once a signup succeeds, .wl-main drops the top-loaded padding meant
+     for the form and instead becomes a true full-viewport centering box
+     — align-items:center is the vertical (cross-axis, since .wl-main is
+     a row flex container) counterpart to its existing justify-content:
+     center. This is what actually keeps .wl-threshold's "You're in."
+     centered in the middle of the screen on any viewport, not just an
+     offset guess — see continuum.js, which adds this class in begin(). */
+  body.continuum-active .wl-main {
+    padding-top: 0;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
   .wl-scene {
+    position: relative;
     width: 100%; max-width: 480px;
   }
   .wl-tag {
@@ -400,15 +414,26 @@
 
   /* ── The Threshold — Scene 1 of the Continuum. A signup doesn't produce
      a toast; the interface itself changes. .wl-form-stage dissolves out,
-     .wl-threshold settles into its place, same container. */
+     .wl-threshold settles into its place, same container.
+
+     .wl-form-stage.wl-form-stage-hidden also switches to position:absolute
+     — without this, the dissolved-but-still-opacity-transitioning form
+     kept its full in-flow height (every stage, all five fields) reserved
+     in the layout even though nothing was visible, pushing .wl-threshold
+     and the whole Continuum down by that height — reported as "empty
+     space" after completing the form. top:0/left:0 keeps it visually in
+     its original spot while it fades (relative to .wl-scene, which is
+     position:relative for exactly this), while removing it from flow
+     immediately so .wl-threshold isn't waiting on it. */
   .wl-form-stage {
     transition: opacity 0.7s var(--ease-cinema), filter 0.7s var(--ease-cinema), transform 0.7s var(--ease-cinema);
   }
   .wl-form-stage.wl-form-stage-hidden {
     opacity: 0; filter: blur(6px); transform: scale(0.98);
     pointer-events: none;
+    position: absolute; top: 0; left: 0; width: 100%;
   }
-  .wl-threshold { display: none; text-align: center; padding-top: clamp(24px, 8vh, 72px); }
+  .wl-threshold { display: none; text-align: center; }
   .wl-threshold.wl-threshold-visible { display: block; }
   .wl-threshold-headline {
     font-family: var(--font-display);
