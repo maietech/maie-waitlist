@@ -297,18 +297,47 @@
   .f-input:focus ~ .f-line { width: 100%; }
 
   .f-select-wrap { position: relative; }
-  select.f-input { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 22px; }
+  .f-select-trigger {
+    display: flex; align-items: center; justify-content: space-between;
+    text-align: left; cursor: pointer; padding-right: 22px;
+    appearance: none; -webkit-appearance: none;
+  }
+  .f-select-value { color: var(--text-1); }
+  .f-select-value.is-placeholder { color: var(--text-2); opacity: 0.55; }
   .f-select-arrow {
     position: absolute; right: 2px; bottom: 12px;
     color: var(--text-2); pointer-events: none; font-size: 12px;
+    transition: transform 0.25s var(--ease-cinema);
   }
-  /* The closed <select> box correctly picks up the page's dark theme, but
-     the native options popup is drawn by the browser with its own white
-     background regardless — so the same light --text-1 color meant for
-     dark surfaces became near-invisible there except on the hovered row
-     (which browsers force to white-on-blue). Force dark text explicitly
-     for the popup only. */
-  select option { color: #1a1a1a; background: #ffffff; }
+  .f-select-trigger[aria-expanded="true"] ~ .f-select-arrow { transform: rotate(180deg); }
+
+  /* Themed replacement for the native <select> popup, which browsers
+     always draw with their own chrome regardless of page styling — see
+     form-overview.md-adjacent request to keep this on-theme. Same tokens
+     as the rest of the form; follows --surface/--border/--text so light
+     mode and dark mode both fall out for free. */
+  .f-select-list {
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 4;
+    margin: 0; padding: 6px; list-style: none;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+    max-height: 240px; overflow-y: auto;
+    opacity: 0; transform: translateY(-4px); pointer-events: none;
+    transition: opacity 0.18s var(--ease-cinema), transform 0.18s var(--ease-cinema);
+  }
+  .f-select-list.f-select-list-open {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  .f-select-option {
+    padding: 9px 10px; border-radius: 6px;
+    font-family: var(--font-ui); font-size: 14.5px; color: var(--text-1);
+    cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+  }
+  .f-select-option.is-active { background: var(--primary-glow); color: var(--text-1); }
+  .f-select-option[aria-selected="true"] { color: var(--primary-light); }
+  @media (prefers-reduced-motion: reduce) {
+    .f-select-list, .f-select-arrow { transition: none; }
+  }
 
   .f-interests-row { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 2px; }
   .f-pill {
@@ -366,8 +395,13 @@
     transition: opacity 0.3s ease, color 0.3s ease;
   }
   .wl-corner:hover, .wl-corner:focus-visible { opacity: 1; color: var(--text-1); }
-  .wl-corner-skip { left: 24px; }
-  .wl-corner-gh { right: 24px; }
+  /* 64px, not the original 24px: the GitHub link's hint ("See what
+     we're building") is wide enough that, centered on a link sitting
+     24px from the edge, half of it ran past the viewport edge. Moving
+     both links in by the same amount (rather than only this one) keeps
+     them equal-distance from their respective corners. */
+  .wl-corner-skip { left: 64px; }
+  .wl-corner-gh { right: 64px; }
   .wl-corner[data-hint]::after { top: auto; bottom: 100%; transform: translate(-50%, -2px); }
   .wl-corner[data-hint]:hover::after { transform: translate(-50%, -8px); }
 
@@ -683,19 +717,23 @@
 
       <div class="stage" data-stage="3">
         <div class="f">
-          <label class="f-label" for="found_via"><span class="f-check">✓</span>How did you hear about us?</label>
+          <label class="f-label" id="found_via-label" for="found_via-trigger"><span class="f-check">✓</span>How did you hear about us?</label>
           <div class="f-select-wrap">
-            <select class="f-input" id="found_via" name="found_via">
-              <option value="">Select one</option>
-              <option value="github">GitHub</option>
-              <option value="twitter_x">Twitter / X</option>
-              <option value="referral">Referral</option>
-              <option value="search">Search engine</option>
-              <option value="other">Other</option>
-            </select>
+            <button type="button" class="f-input f-select-trigger" id="found_via-trigger"
+                    aria-haspopup="listbox" aria-expanded="false" aria-labelledby="found_via-label found_via-trigger">
+              <span class="f-select-value is-placeholder" id="found_via-value" data-placeholder="Select one">Select one</span>
+            </button>
             <span class="f-select-arrow" aria-hidden="true">⌄</span>
             <span class="f-line" aria-hidden="true"></span>
+            <ul class="f-select-list" id="found_via-list" role="listbox" tabindex="-1" aria-labelledby="found_via-label" hidden>
+              <li class="f-select-option" role="option" data-value="github" id="found_via-opt-github">GitHub</li>
+              <li class="f-select-option" role="option" data-value="twitter_x" id="found_via-opt-twitter_x">Twitter / X</li>
+              <li class="f-select-option" role="option" data-value="referral" id="found_via-opt-referral">Referral</li>
+              <li class="f-select-option" role="option" data-value="search" id="found_via-opt-search">Search engine</li>
+              <li class="f-select-option" role="option" data-value="other" id="found_via-opt-other">Other</li>
+            </ul>
           </div>
+          <input type="hidden" id="found_via" name="found_via" value="">
         </div>
         <button type="button" class="stage-continue">Continue ↵</button>
       </div>
@@ -710,7 +748,7 @@
             <label class="f-pill"><input type="checkbox" name="interests" value="marketplace"> Marketplace</label>
           </div>
         </div>
-        <button type="button" class="stage-continue">Continue ↵</button>
+        <button type="button" class="stage-continue">Reserve my spot ↵</button>
       </div>
 
       <div class="wl-submit-wrap" id="submit-wrap">
@@ -832,6 +870,116 @@
     }
   })();
 
+  // ── Custom themed dropdown — replaces the native <select> for
+  // "How did you hear about us?" so the open popup picks up the page's
+  // own tokens instead of the browser's fixed white-on-dark chrome.
+  // Standard "select-only" combobox/listbox pattern: a button trigger
+  // plus a role="listbox" popup, value synced into a hidden input so the
+  // rest of the form (FormData, the existing .has-value wiring) doesn't
+  // need to know anything changed. ────────────────────────────────────
+  (function () {
+    var reduceMotionSelect = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function initCustomSelect(prefix) {
+      var trigger = document.getElementById(prefix + '-trigger');
+      var valueEl = document.getElementById(prefix + '-value');
+      var list = document.getElementById(prefix + '-list');
+      var hidden = document.getElementById(prefix);
+      if (!trigger || !valueEl || !list || !hidden) return;
+
+      var options = Array.prototype.slice.call(list.querySelectorAll('.f-select-option'));
+      var activeIdx = -1;
+      var open = false;
+
+      function setActive(idx) {
+        activeIdx = idx;
+        options.forEach(function (o, i) { o.classList.toggle('is-active', i === idx); });
+        if (idx >= 0) list.setAttribute('aria-activedescendant', options[idx].id);
+        else list.removeAttribute('aria-activedescendant');
+      }
+
+      function openList() {
+        if (open) return;
+        open = true;
+        list.hidden = false;
+        requestAnimationFrame(function () { list.classList.add('f-select-list-open'); });
+        trigger.setAttribute('aria-expanded', 'true');
+        var selectedIdx = -1;
+        options.forEach(function (o, i) { if (o.getAttribute('aria-selected') === 'true') selectedIdx = i; });
+        setActive(selectedIdx >= 0 ? selectedIdx : 0);
+        list.focus();
+      }
+
+      function closeList(focusTrigger) {
+        if (!open) return;
+        open = false;
+        list.classList.remove('f-select-list-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        setActive(-1);
+        if (reduceMotionSelect) list.hidden = true;
+        else setTimeout(function () { list.hidden = true; }, 200);
+        if (focusTrigger) trigger.focus();
+      }
+
+      function commit(idx) {
+        options.forEach(function (o, i) { o.setAttribute('aria-selected', i === idx ? 'true' : 'false'); });
+        var opt = options[idx];
+        hidden.value = opt.getAttribute('data-value');
+        valueEl.textContent = opt.textContent;
+        valueEl.classList.remove('is-placeholder');
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      trigger.addEventListener('click', function () {
+        if (open) closeList(true); else openList();
+      });
+
+      trigger.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openList();
+        }
+      });
+
+      list.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setActive(Math.min(options.length - 1, activeIdx < 0 ? 0 : activeIdx + 1));
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setActive(Math.max(0, activeIdx < 0 ? 0 : activeIdx - 1));
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          setActive(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          setActive(options.length - 1);
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (activeIdx >= 0) { commit(activeIdx); closeList(true); }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closeList(true);
+        } else if (e.key === 'Tab') {
+          closeList(false);
+        }
+      });
+
+      options.forEach(function (opt, idx) {
+        opt.addEventListener('click', function () { commit(idx); closeList(true); });
+        opt.addEventListener('mouseenter', function () { setActive(idx); });
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!open) return;
+        if (e.target === trigger || trigger.contains(e.target) || list.contains(e.target)) return;
+        closeList(false);
+      });
+    }
+
+    initCustomSelect('found_via');
+  })();
+
   // ── The Assembly — progressive, cinematic form reveal ──────────────
   (function () {
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -861,7 +1009,7 @@
       }
       if (typeof index === 'number') {
         setActive(index);
-        var focusable = el.querySelector('input, select');
+        var focusable = el.querySelector('input:not([type="hidden"]), select, .f-select-trigger');
         if (focusable && !reduceMotion) {
           setTimeout(function () { focusable.focus(); }, 470);
         }
@@ -907,6 +1055,18 @@
       if (window.MaieTelemetry) {
         window.MaieTelemetry.track('waitlist_stage_completed', { stage: index });
       }
+
+      // The last stage's own Continue button *is* the submit action now —
+      // no separate "Reserve my spot" click after it. revealSubmit() still
+      // runs first so the message area (errors, "Joining…") has somewhere
+      // to render, and its button stays as a manual fallback if the
+      // request fails.
+      if (index === stages.length - 1) {
+        revealSubmit();
+        form.requestSubmit();
+        return;
+      }
+
       reveal(index + 1);
     }
 
