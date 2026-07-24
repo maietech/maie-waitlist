@@ -32,6 +32,9 @@
     --font-display: 'Bebas Neue', sans-serif;
     --font-ui: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --ease-cinema: cubic-bezier(0.16, 1, 0.3, 1);
+    --err: #d97b7b;
+    --ok: #6fbf8a;
   }
   /* Light mode — set via data-theme="light" on <html> by theme-init.js
      (seed, pre-paint) and the header toggle's click handler. Mirrors
@@ -58,53 +61,70 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 24px 24px;
+    padding: 0 24px 64px;
     transition: background 0.22s ease, color 0.22s ease;
+    overflow-x: hidden;
   }
+
+  /* ── Header — the "costars": present, but never shouting ─────────── */
   .wl-header {
-    position: relative; z-index: 2;
-    width: 100%; max-width: 480px;
+    position: relative; z-index: 3;
+    width: 100%; max-width: 560px;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 0 8px;
+    padding: 24px 0 8px;
   }
-  .wl-header-brand {
-    font-family: var(--font-display);
-    font-size: 18px; letter-spacing: 0.02em; color: var(--text-1);
-  }
-  /* Wraps the wordmark + signal icon into one link back to the main
-     site — same treatment as .nav-brand on joinmaie.com (color + a
-     plain transition, no underline, icon inherits currentColor via
-     --primary-light stroke token). */
   .wl-header-brand-link {
     display: flex; align-items: center; gap: 8px;
     text-decoration: none; color: var(--text-1);
-    transition: color 0.3s ease;
+    opacity: 0.82;
+    transition: color 0.3s ease, opacity 0.3s ease;
+    position: relative;
   }
-  .wl-brand-icon { width: 26px; height: auto; flex-shrink: 0; }
-  /* Same small-link treatment as the main site's .nav-link: 14px, muted
-     by default, brightens on hover — kept here so the waitlist reads as
-     the same product rather than a disconnected form page. */
-  .wl-nav-links { display: flex; align-items: center; gap: 18px; }
+  .wl-header-brand-link:hover { opacity: 1; }
+  .wl-header-brand {
+    font-family: var(--font-display);
+    font-size: 17px; letter-spacing: 0.04em; color: var(--text-1);
+  }
+  .wl-brand-icon { width: 24px; height: auto; flex-shrink: 0; }
+  .wl-nav-links { display: flex; align-items: center; gap: 20px; }
   .wl-nav-link {
-    font-size: 14px; color: var(--text-2); text-decoration: none;
-    transition: color 0.3s ease;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-2); text-decoration: none;
+    opacity: 0.65;
+    transition: color 0.3s ease, opacity 0.3s ease;
+    position: relative;
   }
-  .wl-nav-link:hover { color: var(--text-1); }
+  .wl-nav-link:hover { color: var(--text-1); opacity: 1; }
+
+  /* Shared "waiting to be noticed" hover caption — used on the brand
+     mark, the pitch link, and the two bottom corner links. Native
+     title="" still carries the accessible name / keyboard-only case;
+     this is the on-hover cinematic caption for pointer users. */
+  [data-hint] { position: relative; }
+  [data-hint]::after {
+    content: attr(data-hint);
+    position: absolute; left: 50%; top: 100%;
+    transform: translate(-50%, 2px);
+    white-space: nowrap;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+    color: var(--text-2); background: transparent;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  [data-hint]:hover::after { opacity: 0.85; transform: translate(-50%, 8px); }
+
   @media (max-width: 380px) {
-    .wl-nav-links { gap: 12px; }
-    .wl-nav-link { font-size: 12.5px; }
-    .wl-header-brand { font-size: 16px; }
+    .wl-nav-links { gap: 14px; }
+    .wl-nav-link { font-size: 10px; }
+    .wl-header-brand { font-size: 15px; }
+    [data-hint]::after { display: none; }
   }
-  .wl-main {
-    position: relative; z-index: 2;
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; flex: 1;
-  }
-  /* ── Ambient background flare ─────────────────────────────────────
-     Subtler port of the splash page's .sp-bg orb system: three blurred,
-     low-opacity brand-color orbs + a faint grain layer, no parallax
-     (this page doesn't scroll). Sits behind .wl-header/.wl-main via
-     z-index; fully theme-aware since orb colors are var(--*) tokens. */
+
+  /* ── Living background ─────────────────────────────────────────────
+     Slow, near-imperceptible drift on each orb plus a faint breathing
+     bloom behind the headline. Nothing here should read as "WebGL" —
+     just a sense that the page is quietly alive. */
   .wl-bg {
     position: fixed; inset: 0; z-index: 0;
     overflow: hidden; pointer-events: none;
@@ -115,23 +135,38 @@
     filter: blur(120px);
     opacity: 0.22;
     mix-blend-mode: normal;
+    will-change: transform;
   }
   [data-theme="light"] .wl-bg-orb { opacity: 0.14; mix-blend-mode: multiply; }
   .wl-bg-orb-1 {
     background: var(--primary);
     width: 480px; height: 480px;
     top: -12%; left: 15%;
+    animation: drift1 46s ease-in-out infinite alternate;
   }
   .wl-bg-orb-2 {
     background: var(--accent-blue);
     width: 380px; height: 380px;
     top: 35%; right: -8%;
+    animation: drift2 58s ease-in-out infinite alternate;
   }
   .wl-bg-orb-3 {
     background: var(--primary-light);
     width: 340px; height: 340px;
     bottom: -14%; left: 8%;
+    animation: drift3 52s ease-in-out infinite alternate;
   }
+  @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(4%, 6%) scale(1.08); } }
+  @keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-6%, -4%) scale(0.94); } }
+  @keyframes drift3 { from { transform: translate(0,0) scale(1); } to { transform: translate(5%, -5%) scale(1.06); } }
+
+  .wl-bloom {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse 60% 40% at 50% 8%, var(--primary-glow), transparent 68%);
+    animation: breathe 9s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.85; } }
+
   .wl-grain {
     position: fixed; inset: 0; z-index: 1;
     pointer-events: none;
@@ -139,62 +174,120 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
 
-  /* ── Background video (inactive scaffold) ───────────────────────────
-     Not wired up — no <video> element is rendered below. Once a
-     self-hosted mp4/webm is available (see README note near the
-     bottom of this file), add:
-       <video class="wl-bg-video" autoplay muted loop playsinline>
-         <source src="/bg-loop.mp4" type="video/mp4">
-       </video>
-     as the FIRST child of <body>, before .wl-bg, and it will sit under
-     the gradient + orbs automatically (z-index below both). Keep the
-     orb layer's opacity low in that case — it's meant to tint the
-     video, not compete with it. */
-  .wl-bg-video {
-    position: fixed; inset: 0; z-index: -1;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    filter: saturate(0.85) brightness(0.6);
-  }
-  .wl-bg-video-overlay {
-    position: fixed; inset: 0; z-index: 0;
-    pointer-events: none;
-    background: linear-gradient(180deg, var(--bg) 0%, transparent 30%, transparent 70%, var(--bg) 100%),
-                radial-gradient(ellipse 70% 50% at 50% 0%, var(--primary-glow), transparent 65%);
+  @media (prefers-reduced-motion: reduce) {
+    .wl-bg-orb, .wl-bloom { animation: none; }
   }
 
-  .wl-card {
-    position: relative; z-index: 1;
+  /* ── The scene — no card, no border, no panel. Everything shares
+     the same plane and the page assembles itself from top to bottom. */
+  .wl-main {
+    position: relative; z-index: 2;
+    display: flex; justify-content: center;
+    width: 100%; flex: 1;
+    padding-top: clamp(48px, 12vh, 120px);
+  }
+  .wl-scene {
     width: 100%; max-width: 480px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 40px 36px;
-    transition: background 0.22s ease, border-color 0.22s ease;
   }
   .wl-tag {
     font-family: var(--font-mono);
-    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--primary-light); margin-bottom: 10px;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--primary-light); margin-bottom: 14px;
+    opacity: 0; transform: translateY(18px);
+    animation: fadeUp 0.5s var(--ease-cinema) forwards;
+    animation-delay: 0.05s;
   }
   h1 {
     font-family: var(--font-display);
-    font-size: clamp(36px, 6vw, 48px);
+    font-size: clamp(40px, 7vw, 56px);
     letter-spacing: 0.02em;
-    margin: 0 0 12px;
+    margin: 0 0 16px;
     line-height: 1;
+    opacity: 0; transform: translateY(18px);
+    animation: fadeUp 0.5s var(--ease-cinema) forwards;
+    animation-delay: 0.28s;
   }
   .wl-sub {
-    color: var(--text-2); font-size: 15px; line-height: 1.5; margin: 0 0 28px;
+    color: var(--text-2); font-size: 15px; line-height: 1.55; margin: 0 0 40px;
+    max-width: 40ch;
+    opacity: 0; transform: translateY(18px);
+    animation: fadeUp 0.5s var(--ease-cinema) forwards;
+    animation-delay: 0.55s;
   }
-  form { display: flex; flex-direction: column; gap: 14px; }
-  label { font-size: 13px; color: var(--text-2); margin-bottom: 4px; display: block; }
-  input, select {
-    width: 100%; background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 11px 12px; color: var(--text-1); font-family: var(--font-ui); font-size: 14px;
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  input:focus, select:focus { outline: none; border-color: var(--primary-light); }
+  @media (prefers-reduced-motion: reduce) {
+    .wl-tag, h1, .wl-sub { animation: none; opacity: 1; transform: none; }
+  }
+
+  form { display: block; }
+  .wl-hp { position: absolute; left: -9999px; opacity: 0; }
+
+  /* ── Stages — each one is a scene, revealed only after the last is
+     addressed. Once past, a stage dims rather than disappears: nothing
+     the user typed is ever hidden away, just no longer centre-frame. */
+  .stage {
+    display: none;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.45s var(--ease-cinema), transform 0.45s var(--ease-cinema);
+    margin-bottom: 30px;
+  }
+  .stage.stage-revealed { display: block; }
+  .stage.stage-revealed.stage-in { opacity: 1; transform: translateY(0); }
+  .stage.stage-dim:not(:focus-within) { opacity: 0.42; }
+  @media (prefers-reduced-motion: reduce) {
+    .stage { transition: opacity 0.2s linear; transform: none; }
+  }
+
+  .f { position: relative; margin-bottom: 4px; }
+  .f-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .f-label {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2); margin-bottom: 10px;
+    transition: color 0.3s ease;
+  }
+  .f-req { color: var(--primary-light); }
+  .f-check {
+    color: var(--primary-light); opacity: 0; transform: scale(0.6);
+    transition: opacity 0.3s var(--ease-cinema), transform 0.3s var(--ease-cinema);
+    display: inline-block;
+  }
+  .f.has-value .f-check { opacity: 1; transform: scale(1); }
+  .f.has-value .f-label { color: var(--text-1); }
+
+  .f-input {
+    width: 100%; background: transparent;
+    border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+    padding: 8px 2px 12px; color: var(--text-1);
+    font-family: var(--font-ui); font-size: 16px;
+    transition: border-color 0.3s ease;
+  }
+  .f-input::placeholder { color: var(--text-2); opacity: 0.55; }
+  .f-input:focus { outline: none; }
+  .f-input.shake { animation: shake 0.4s var(--ease-cinema); }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+  }
+  .f-line {
+    position: absolute; left: 0; bottom: 0; height: 1px; width: 0;
+    background: var(--primary-light);
+    transition: width 0.4s var(--ease-cinema);
+  }
+  .f-input:focus ~ .f-line { width: 100%; }
+
+  .f-select-wrap { position: relative; }
+  select.f-input { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 22px; }
+  .f-select-arrow {
+    position: absolute; right: 2px; bottom: 12px;
+    color: var(--text-2); pointer-events: none; font-size: 12px;
+  }
   /* The closed <select> box correctly picks up the page's dark theme, but
      the native options popup is drawn by the browser with its own white
      background regardless — so the same light --text-1 color meant for
@@ -202,20 +295,67 @@
      (which browsers force to white-on-blue). Force dark text explicitly
      for the popup only. */
   select option { color: #1a1a1a; background: #ffffff; }
-  .wl-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .wl-hp { position: absolute; left: -9999px; opacity: 0; }
+
+  .f-interests-row { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 2px; }
+  .f-pill {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--text-2);
+    cursor: pointer; transition: color 0.25s ease;
+  }
+  .f-pill:hover { color: var(--text-1); }
+  .f-pill input[type="checkbox"] {
+    width: 15px; height: 15px; margin: 0; accent-color: var(--primary-light); cursor: pointer;
+  }
+
+  .stage-continue {
+    appearance: none; background: none; border: none; padding: 0;
+    margin-top: 16px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2); opacity: 0.55;
+    cursor: pointer; transition: opacity 0.3s ease, color 0.3s ease;
+  }
+  .stage-continue:hover, .stage-continue:focus-visible { opacity: 1; color: var(--primary-light); }
+
+  .wl-submit-wrap {
+    display: none; opacity: 0; transform: translateY(16px);
+    transition: opacity 0.45s var(--ease-cinema), transform 0.45s var(--ease-cinema);
+  }
+  .wl-submit-wrap.stage-revealed { display: block; }
+  .wl-submit-wrap.stage-revealed.stage-in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .wl-submit-wrap { transition: opacity 0.2s linear; transform: none; }
+  }
+
   button[type="submit"] {
-    margin-top: 8px; background: var(--primary); color: #fff; border: none;
-    border-radius: 8px; padding: 13px 20px; font-size: 15px; font-weight: 600;
-    font-family: var(--font-ui); cursor: pointer; transition: background 0.15s ease;
+    width: 100%;
+    background: var(--primary); color: #fff; border: none;
+    border-radius: 4px; padding: 15px 20px; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.01em;
+    font-family: var(--font-ui); cursor: pointer;
+    transition: background 0.3s ease, opacity 0.3s ease;
   }
   button[type="submit"]:hover { background: var(--primary-light); }
   button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
-  .wl-msg { font-size: 14px; margin-top: 4px; min-height: 20px; }
-  .wl-msg.ok { color: #6fbf8a; }
-  .wl-msg.err { color: #d97b7b; }
-  .wl-footer { margin-top: 24px; font-size: 12px; color: var(--text-2); text-align: center; }
-  .wl-footer a { color: var(--primary-light); text-decoration: none; }
+  .wl-msg { font-size: 13.5px; margin-top: 14px; min-height: 18px; font-family: var(--font-mono); }
+  .wl-msg.ok { color: var(--ok); }
+  .wl-msg.err { color: var(--err); }
+
+  /* ── Corner easter eggs — a skip link for anyone who'd rather just
+     fill out a plain form, and the GitHub link, mirrored bottom-left
+     / bottom-right the way the brand and pitch link sit top-left /
+     top-right. */
+  .wl-corner {
+    position: fixed; bottom: 20px; z-index: 3;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-2); text-decoration: none;
+    opacity: 0.45; background: none; border: none; padding: 0; cursor: pointer;
+    transition: opacity 0.3s ease, color 0.3s ease;
+  }
+  .wl-corner:hover, .wl-corner:focus-visible { opacity: 1; color: var(--text-1); }
+  .wl-corner-skip { left: 24px; }
+  .wl-corner-gh { right: 24px; }
+  .wl-corner[data-hint]::after { top: auto; bottom: 100%; transform: translate(-50%, -2px); }
+  .wl-corner[data-hint]:hover::after { transform: translate(-50%, -8px); }
 
   /* ── Theme toggle — same look as the app's ThemeToggle.tsx / the
      portal's shared nav (Sun/Moon pill switch). ─────────────────── */
@@ -223,9 +363,11 @@
     display: inline-flex; align-items: center; gap: 8px;
     cursor: pointer; user-select: none;
     background: none; border: none; padding: 0;
+    opacity: 0.75; transition: opacity 0.3s ease;
   }
+  .mnav-theme-toggle:hover { opacity: 1; }
   .mnav-theme-track {
-    position: relative; width: 40px; height: 22px; border-radius: 100px;
+    position: relative; width: 38px; height: 21px; border-radius: 100px;
     border: 1px solid transparent;
     transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
     flex-shrink: 0;
@@ -233,32 +375,30 @@
   [data-theme="dark"] .mnav-theme-track { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
   [data-theme="light"] .mnav-theme-track { background: rgba(165,42,42,0.12); border-color: rgba(165,42,42,0.3); box-shadow: 0 0 0 1px rgba(165,42,42,0.12); }
   .mnav-theme-thumb {
-    position: absolute; top: 2px; width: 16px; height: 16px; border-radius: 50%;
-    transition: left 0.22s cubic-bezier(0.4,0,0.2,1), background 0.22s ease, box-shadow 0.22s ease;
+    position: absolute; top: 2px; width: 15px; height: 15px; border-radius: 50%;
+    transition: left 0.22s var(--ease-cinema), background 0.22s ease, box-shadow 0.22s ease;
     display: flex; align-items: center; justify-content: center;
   }
-  .mnav-theme-thumb svg { width: 10px; height: 10px; display: block; }
+  .mnav-theme-thumb svg { width: 9px; height: 9px; display: block; }
   [data-theme="dark"] .mnav-theme-thumb { left: 2px; background: rgba(232,230,227,0.45); box-shadow: none; color: #1a1a1a; }
-  [data-theme="light"] .mnav-theme-thumb { left: 20px; background: #A52A2A; box-shadow: 0 1px 6px rgba(165,42,42,0.45); color: #fff; }
-  .mnav-theme-label {
-    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
-    letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.22s ease;
+  [data-theme="light"] .mnav-theme-thumb { left: 19px; background: #A52A2A; box-shadow: 0 1px 6px rgba(165,42,42,0.45); color: #fff; }
+
+  @media (max-width: 480px) {
+    .f-row2 { grid-template-columns: 1fr; gap: 20px; }
   }
-  [data-theme="dark"] .mnav-theme-label { color: rgba(232,230,227,0.38); }
-  [data-theme="light"] .mnav-theme-label { color: rgba(165,42,42,0.75); }
 </style>
 </head>
 <body>
-<!-- Video background scaffold lives here, inactive — see the
-     .wl-bg-video comment in <style> above for how to wire it in. -->
 <div class="wl-bg">
   <div class="wl-bg-orb wl-bg-orb-1"></div>
   <div class="wl-bg-orb wl-bg-orb-2"></div>
   <div class="wl-bg-orb wl-bg-orb-3"></div>
 </div>
+<div class="wl-bloom"></div>
 <div class="wl-grain"></div>
+
 <header class="wl-header">
-  <a class="wl-header-brand-link" href="https://joinmaie.com">
+  <a class="wl-header-brand-link" data-hint="Return to homepage" href="https://joinmaie.com">
     <span class="wl-header-brand">MAIE</span>
     <svg class="wl-brand-icon" viewBox="0 0 92 56" fill="none" stroke="var(--primary-light)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M 2,32 L 7,14 L 12,46 L 18,10 L 24,40
@@ -271,90 +411,107 @@
     </svg>
   </a>
   <div class="wl-nav-links">
-    <a class="wl-nav-link" href="https://portal.joinmaie.com/pitch/">Pitch Deck</a>
+    <a class="wl-nav-link" data-hint="Read the vision" href="https://portal.joinmaie.com/pitch/">Pitch</a>
     <button class="mnav-theme-toggle" id="mnav-theme-toggle" type="button">
       <span class="mnav-theme-track">
         <span class="mnav-theme-thumb" id="mnav-theme-thumb"></span>
       </span>
-      <span class="mnav-theme-label" id="mnav-theme-label"></span>
     </button>
   </div>
 </header>
-<div class="wl-main">
-<div class="wl-card">
-  <div class="wl-tag">MAIE — EARLY ACCESS</div>
-  <h1>Join the waitlist</h1>
-  <p class="wl-sub">Be first in line when MAIE opens up. A few quick details help us prioritize the right people first.</p>
 
-  <form id="wl-form">
-    <input class="wl-hp" type="text" name="company_website" tabindex="-1" autocomplete="off">
+<main class="wl-main">
+  <div class="wl-scene">
+    <div class="wl-tag">MAIE — Early Access</div>
+    <h1>Join the waitlist</h1>
+    <p class="wl-sub">Be first in line when MAIE opens up. A few details help us prioritize the right people first.</p>
 
-    <div>
-      <label for="email">Email *</label>
-      <input type="email" id="email" name="email" required placeholder="you@example.com">
-    </div>
+    <form id="wl-form" novalidate>
+      <input class="wl-hp" type="text" name="company_website" tabindex="-1" autocomplete="off">
 
-    <div class="wl-row2">
-      <div>
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name" placeholder="Jane Doe">
+      <div class="stage" data-stage="0">
+        <div class="f">
+          <label class="f-label" for="email"><span class="f-check">✓</span>Email<span class="f-req">*</span></label>
+          <input class="f-input" type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
+          <span class="f-line" aria-hidden="true"></span>
+        </div>
+        <button type="button" class="stage-continue">Continue ↵</button>
       </div>
-      <div>
-        <label for="company">Company</label>
-        <input type="text" id="company" name="company" placeholder="Optional">
+
+      <div class="stage" data-stage="1">
+        <div class="f-row2">
+          <div class="f">
+            <label class="f-label" for="name"><span class="f-check">✓</span>Name</label>
+            <input class="f-input" type="text" id="name" name="name" placeholder="Jane Doe">
+            <span class="f-line" aria-hidden="true"></span>
+          </div>
+          <div class="f">
+            <label class="f-label" for="company"><span class="f-check">✓</span>Company</label>
+            <input class="f-input" type="text" id="company" name="company" placeholder="Optional">
+            <span class="f-line" aria-hidden="true"></span>
+          </div>
+        </div>
+        <button type="button" class="stage-continue">Continue ↵</button>
       </div>
-    </div>
 
-    <div class="wl-row2">
-      <div>
-        <label for="role">Role</label>
-        <input type="text" id="role" name="role" placeholder="e.g. CTO, Editor">
+      <div class="stage" data-stage="2">
+        <div class="f-row2">
+          <div class="f">
+            <label class="f-label" for="role"><span class="f-check">✓</span>Role</label>
+            <input class="f-input" type="text" id="role" name="role" placeholder="e.g. CTO, Editor">
+            <span class="f-line" aria-hidden="true"></span>
+          </div>
+          <div class="f">
+            <label class="f-label" for="github_user"><span class="f-check">✓</span>GitHub</label>
+            <input class="f-input" type="text" id="github_user" name="github_user" placeholder="Optional">
+            <span class="f-line" aria-hidden="true"></span>
+          </div>
+        </div>
+        <button type="button" class="stage-continue">Continue ↵</button>
       </div>
-      <div>
-        <label for="github_user">GitHub username</label>
-        <input type="text" id="github_user" name="github_user" placeholder="Optional">
+
+      <div class="stage" data-stage="3">
+        <div class="f">
+          <label class="f-label" for="found_via"><span class="f-check">✓</span>How did you hear about us?</label>
+          <div class="f-select-wrap">
+            <select class="f-input" id="found_via" name="found_via">
+              <option value="">Select one</option>
+              <option value="github">GitHub</option>
+              <option value="twitter_x">Twitter / X</option>
+              <option value="referral">Referral</option>
+              <option value="search">Search engine</option>
+              <option value="other">Other</option>
+            </select>
+            <span class="f-select-arrow" aria-hidden="true">⌄</span>
+            <span class="f-line" aria-hidden="true"></span>
+          </div>
+        </div>
+        <button type="button" class="stage-continue">Continue ↵</button>
       </div>
-    </div>
 
-    <div>
-      <label for="found_via">How did you hear about us?</label>
-      <select id="found_via" name="found_via">
-        <option value="">Select one</option>
-        <option value="github">GitHub</option>
-        <option value="twitter_x">Twitter / X</option>
-        <option value="referral">Referral</option>
-        <option value="search">Search engine</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-
-    <div>
-      <label>What are you interested in?</label>
-      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
-          <input type="checkbox" name="interests" value="ai_agents" style="width:auto;"> AI agents
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
-          <input type="checkbox" name="interests" value="oss" style="width:auto;"> Open source
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
-          <input type="checkbox" name="interests" value="video_tools" style="width:auto;"> Video tools
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
-          <input type="checkbox" name="interests" value="marketplace" style="width:auto;"> Marketplace
-        </label>
+      <div class="stage" data-stage="4">
+        <div class="f">
+          <label class="f-label">What are you interested in?</label>
+          <div class="f-interests-row">
+            <label class="f-pill"><input type="checkbox" name="interests" value="ai_agents"> AI agents</label>
+            <label class="f-pill"><input type="checkbox" name="interests" value="oss"> Open source</label>
+            <label class="f-pill"><input type="checkbox" name="interests" value="video_tools"> Video tools</label>
+            <label class="f-pill"><input type="checkbox" name="interests" value="marketplace"> Marketplace</label>
+          </div>
+        </div>
+        <button type="button" class="stage-continue">Continue ↵</button>
       </div>
-    </div>
 
-    <button type="submit" id="wl-submit">Join the waitlist</button>
-    <div class="wl-msg" id="wl-msg"></div>
-  </form>
-
-  <div class="wl-footer">
-    Source and docs on <a href="https://github.com/maietech" target="_blank" rel="noopener">GitHub</a>.
+      <div class="wl-submit-wrap" id="submit-wrap">
+        <button type="submit" id="wl-submit">Reserve my spot</button>
+        <div class="wl-msg" id="wl-msg"></div>
+      </div>
+    </form>
   </div>
-</div>
-</div>
+</main>
+
+<button class="wl-corner wl-corner-skip" id="skip-link" type="button" data-hint="Prefer a plain form?">Show full form</button>
+<a class="wl-corner wl-corner-gh" data-hint="See what we're building" href="https://github.com/maietech" target="_blank" rel="noopener">GitHub</a>
 
 <script>
   // ── Theme toggle ──────────────────────────────────────────────────
@@ -363,12 +520,10 @@
     var MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>';
     var themeBtn = document.getElementById('mnav-theme-toggle');
     var themeThumb = document.getElementById('mnav-theme-thumb');
-    var themeLabel = document.getElementById('mnav-theme-label');
 
     function renderTheme() {
       var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
       if (themeThumb) themeThumb.innerHTML = isDark ? MOON_ICON : SUN_ICON;
-      if (themeLabel) themeLabel.textContent = isDark ? 'Dark' : 'Light';
       if (themeBtn) {
         var next = isDark ? 'light' : 'dark';
         themeBtn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
@@ -388,52 +543,155 @@
     }
   })();
 
-  const form = document.getElementById('wl-form');
-  const msg = document.getElementById('wl-msg');
-  const btn = document.getElementById('wl-submit');
+  // ── The Assembly — progressive, cinematic form reveal ──────────────
+  (function () {
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var form = document.getElementById('wl-form');
+    var stages = Array.prototype.slice.call(document.querySelectorAll('.stage'));
+    var submitWrap = document.getElementById('submit-wrap');
+    var skipLink = document.getElementById('skip-link');
+    var activeIndex = -1;
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    msg.textContent = '';
-    msg.className = 'wl-msg';
-    btn.disabled = true;
-    btn.textContent = 'Joining…';
+    function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
-    const fd = new FormData(form);
-    const payload = {
-      email: fd.get('email'),
-      name: fd.get('name'),
-      company: fd.get('company'),
-      role: fd.get('role'),
-      github_user: fd.get('github_user'),
-      found_via: fd.get('found_via'),
-      interests: fd.getAll('interests'),
-      company_website: fd.get('company_website'), // honeypot
-    };
-
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
+    function setActive(index) {
+      stages.forEach(function (s, i) {
+        s.classList.toggle('stage-dim', i < index);
       });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
-        msg.classList.add('ok');
-        form.reset();
-      } else {
-        msg.textContent = data.error || 'Something went wrong. Try again.';
-        msg.classList.add('err');
-      }
-    } catch {
-      msg.textContent = 'Network error — please try again.';
-      msg.classList.add('err');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Join the waitlist';
+      activeIndex = index;
     }
-  });
+
+    function revealStage(el, index) {
+      el.classList.add('stage-revealed');
+      if (reduceMotion) {
+        el.classList.add('stage-in');
+      } else {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { el.classList.add('stage-in'); });
+        });
+      }
+      if (typeof index === 'number') {
+        setActive(index);
+        var focusable = el.querySelector('input, select');
+        if (focusable && !reduceMotion) {
+          setTimeout(function () { focusable.focus(); }, 470);
+        }
+      }
+    }
+
+    function reveal(index) {
+      if (index >= stages.length) { revealSubmit(); return; }
+      revealStage(stages[index], index);
+    }
+
+    function revealSubmit() {
+      revealStage(submitWrap);
+      stages.forEach(function (s) { s.classList.add('stage-dim'); });
+      activeIndex = stages.length;
+    }
+
+    function revealAll() {
+      stages.forEach(function (s) { s.classList.add('stage-revealed', 'stage-in'); s.classList.remove('stage-dim'); });
+      revealStage(submitWrap);
+      if (skipLink) skipLink.style.display = 'none';
+    }
+
+    function advanceFrom(index) {
+      if (index === 0) {
+        var emailInput = document.getElementById('email');
+        if (!validEmail(emailInput.value.trim())) {
+          emailInput.classList.remove('shake');
+          void emailInput.offsetWidth;
+          emailInput.classList.add('shake');
+          emailInput.setAttribute('aria-invalid', 'true');
+          emailInput.focus();
+          return;
+        }
+        emailInput.removeAttribute('aria-invalid');
+      }
+      reveal(index + 1);
+    }
+
+    stages.forEach(function (stage, idx) {
+      var btn = stage.querySelector('.stage-continue');
+      if (btn) btn.addEventListener('click', function () { advanceFrom(idx); });
+    });
+
+    form.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      if (e.target.tagName === 'TEXTAREA') return;
+      var stage = e.target.closest ? e.target.closest('.stage') : null;
+      if (!stage) return;
+      var idx = stages.indexOf(stage);
+      if (idx === -1 || idx !== activeIndex) return;
+      e.preventDefault();
+      advanceFrom(idx);
+    });
+
+    form.querySelectorAll('.f input, .f select').forEach(function (inp) {
+      var f = inp.closest('.f');
+      if (!f || inp.type === 'checkbox') return;
+      var update = function () { f.classList.toggle('has-value', inp.value.trim() !== ''); };
+      inp.addEventListener('input', update);
+      inp.addEventListener('change', update);
+    });
+
+    if (skipLink) skipLink.addEventListener('click', revealAll);
+
+    if (reduceMotion) {
+      revealAll();
+    } else {
+      setTimeout(function () { reveal(0); }, 950);
+    }
+
+    // ── Submission ─────────────────────────────────────────────────
+    var msg = document.getElementById('wl-msg');
+    var btn = document.getElementById('wl-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      msg.className = 'wl-msg';
+      btn.disabled = true;
+      btn.textContent = 'Joining…';
+
+      const fd = new FormData(form);
+      const payload = {
+        email: fd.get('email'),
+        name: fd.get('name'),
+        company: fd.get('company'),
+        role: fd.get('role'),
+        github_user: fd.get('github_user'),
+        found_via: fd.get('found_via'),
+        interests: fd.getAll('interests'),
+        company_website: fd.get('company_website'), // honeypot
+      };
+
+      try {
+        const res = await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
+          msg.classList.add('ok');
+          form.reset();
+          form.querySelectorAll('.f.has-value').forEach(function (f) { f.classList.remove('has-value'); });
+        } else {
+          msg.textContent = data.error || 'Something went wrong. Try again.';
+          msg.classList.add('err');
+        }
+      } catch {
+        msg.textContent = 'Network error — please try again.';
+        msg.classList.add('err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reserve my spot';
+      }
+    });
+  })();
 </script>
 </body>
 </html>
