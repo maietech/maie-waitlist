@@ -11,7 +11,29 @@ index.html                    the waitlist page itself
 functions/api/waitlist.ts      POST = save signup + notify; GET = CSV export
 schema.sql                     D1 table definition
 wrangler.toml                  local dev config / D1 binding reference
+continuum.js                   post-signup cinematic sequence — see below
+pixie-companion.js             ported verbatim from joinmaie-landing, unmodified
+story-scroll.js                ported verbatim from joinmaie-landing, unmodified
 ```
+
+## The Continuum
+
+A signup doesn't end at "you're on the list" — `continuum.js` takes over
+from the submit handler in `index.html` (`window.MaieContinuum.begin()`)
+and runs a short scroll-driven sequence in the same story-scene style
+joinmaie-landing uses for its own cinematic sections: the form dissolves
+into a plain "You're in.", then three tall scroll-scenes follow — Pixie
+appears and says one thing (reusing `pixie-companion.js`/
+`getPixieThemeColors()` as-is), a handful of one-line intertitles, then a
+curtain that fills the screen and hands off to `joinmaie.com` with a real
+navigation after a short dwell (manual link only under
+`prefers-reduced-motion`, never automatic).
+
+`pixie-companion.js` reads `--brand-light`/`--accent` via
+`getComputedStyle`; this page's tokens predate that engine and use
+`--primary*` names for the same colors, so `index.html`'s `:root` aliases
+`--brand`/`--brand-light`/`--brand-glow` to the existing `--primary*`
+values rather than forking the engine or renaming either side.
 
 ## One-time setup in the Cloudflare dashboard
 

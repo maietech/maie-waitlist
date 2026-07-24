@@ -386,6 +386,140 @@
   @media (max-width: 480px) {
     .f-row2 { grid-template-columns: 1fr; gap: 20px; }
   }
+
+  /* ── Token aliases — pixie-companion.js is ported verbatim from the app
+     (see joinmaie-landing's DESIGN-DEV-GUIDE.md §4) and reads --brand-light
+     / --accent via getComputedStyle. This page's tokens predate that engine
+     and use --primary* names for the same colors, so alias rather than
+     rename either side or fork the engine. */
+  :root {
+    --brand: var(--primary);
+    --brand-light: var(--primary-light);
+    --brand-glow: var(--primary-glow);
+  }
+
+  /* ── The Threshold — Scene 1 of the Continuum. A signup doesn't produce
+     a toast; the interface itself changes. .wl-form-stage dissolves out,
+     .wl-threshold settles into its place, same container. */
+  .wl-form-stage {
+    transition: opacity 0.7s var(--ease-cinema), filter 0.7s var(--ease-cinema), transform 0.7s var(--ease-cinema);
+  }
+  .wl-form-stage.wl-form-stage-hidden {
+    opacity: 0; filter: blur(6px); transform: scale(0.98);
+    pointer-events: none;
+  }
+  .wl-threshold { display: none; text-align: center; padding-top: clamp(24px, 8vh, 72px); }
+  .wl-threshold.wl-threshold-visible { display: block; }
+  .wl-threshold-headline {
+    font-family: var(--font-display);
+    font-size: clamp(44px, 8vw, 64px);
+    letter-spacing: 0.02em; margin: 0;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.8s var(--ease-cinema), transform 0.8s var(--ease-cinema);
+  }
+  .wl-threshold.wl-threshold-visible .wl-threshold-headline { opacity: 1; transform: translateY(0); }
+  .wl-threshold-hint {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2);
+    margin-top: 22px; opacity: 0;
+    transition: opacity 1.1s ease;
+  }
+  .wl-threshold-hint.continuum-in { opacity: 0.55; }
+  @media (prefers-reduced-motion: reduce) {
+    .wl-form-stage { transition: opacity 0.2s linear; transform: none; }
+    .wl-form-stage.wl-form-stage-hidden { filter: none; }
+    .wl-threshold-headline, .wl-threshold-hint { transition: opacity 0.2s linear; transform: none; }
+  }
+
+  /* ── The Continuum — Scenes 2-4, mounted only once a signup succeeds.
+     Same story-scene pattern as joinmaie-landing: a tall wrapper, a
+     `position: sticky` inner panel, progress read from scroll position via
+     story-scroll.js's initScrollScene — never set, so native scroll is
+     never hijacked. */
+  /* body is `display:flex; align-items:center`, so its direct children
+     shrink-to-fit by default (same reason .wl-main sets width:100% above)
+     — without this, #continuum's flex-item width would collapse to its
+     content instead of spanning the viewport. */
+  #continuum { width: 100%; }
+  #continuum.continuum-hidden { display: none; }
+  .continuum-scene { position: relative; height: 260vh; }
+  .continuum-sticky {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0 24px;
+  }
+
+  /* ── Environmental storytelling — the haze thickens, nothing else does.
+     Driven by --continuum-atmosphere (0→1), set from scroll position across
+     #continuum by continuum.js. Layered above the grain, below page content.
+     This is a discrete scroll-position read, not a continuous animation
+     loop, so it stays wired up under reduced motion too — the visual effect
+     itself is neutralized below instead. */
+  .continuum-haze {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    opacity: var(--continuum-atmosphere, 0);
+    background: radial-gradient(ellipse 70% 50% at 50% 50%, var(--primary-glow), transparent 70%);
+    backdrop-filter: blur(calc(var(--continuum-atmosphere, 0) * 3px));
+    -webkit-backdrop-filter: blur(calc(var(--continuum-atmosphere, 0) * 3px));
+    transition: opacity 0.4s ease;
+  }
+  .wl-bg-orb {
+    filter: blur(calc(120px + var(--continuum-atmosphere, 0) * 50px));
+    opacity: calc(0.22 + var(--continuum-atmosphere, 0) * 0.18);
+  }
+  [data-theme="light"] .wl-bg-orb {
+    opacity: calc(0.14 + var(--continuum-atmosphere, 0) * 0.14);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .continuum-haze { opacity: 0 !important; }
+    .wl-bg-orb { filter: blur(120px) !important; opacity: 0.22 !important; }
+    [data-theme="light"] .wl-bg-orb { opacity: 0.14 !important; }
+  }
+
+  /* ── Scene 2: The Invitation — Pixie appears, observes, says one thing. */
+  .continuum-pixie-canvas { display: block; opacity: 0; }
+  .continuum-invite-line {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 4.5vw, 38px);
+    letter-spacing: 0.01em; line-height: 1.25;
+    max-width: 20ch; margin: 28px 0 0; opacity: 0;
+  }
+  .continuum-invite-evolve {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2);
+    margin-top: 20px; opacity: 0;
+  }
+  .continuum-invite-evolve.continuum-flash { animation: continuumFlash 0.9s var(--ease-cinema); }
+  @keyframes continuumFlash { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .continuum-invite-evolve.continuum-flash { animation: none; }
+  }
+
+  /* ── Scene 3: The Journey — one idea, one viewport, then it's gone. */
+  .continuum-journey-line {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5.5vw, 46px);
+    letter-spacing: 0.01em; line-height: 1.3;
+    max-width: min(90vw, 620px);
+    opacity: 0;
+  }
+
+  /* ── Scene 4: The Transition — the page itself becomes the curtain. */
+  .continuum-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); opacity: 0; }
+  .continuum-welcome {
+    position: relative; z-index: 2;
+    font-family: var(--font-display);
+    font-size: clamp(40px, 7vw, 58px);
+    letter-spacing: 0.02em; margin: 0; opacity: 0;
+  }
+  .continuum-enter-link {
+    position: relative; z-index: 2;
+    display: inline-block; margin-top: 22px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2); text-decoration: none;
+    opacity: 0; transition: opacity 0.3s ease, color 0.3s ease;
+  }
+  .continuum-enter-link:hover, .continuum-enter-link:focus-visible { color: var(--primary-light); }
 </style>
 </head>
 <body>
@@ -396,6 +530,7 @@
 </div>
 <div class="wl-bloom"></div>
 <div class="wl-grain"></div>
+<div class="continuum-haze"></div>
 
 <header class="wl-header">
   <a class="wl-header-brand-link" data-hint="Return to homepage" href="https://joinmaie.com">
@@ -422,6 +557,7 @@
 
 <main class="wl-main">
   <div class="wl-scene">
+    <div class="wl-form-stage" id="wl-form-stage">
     <div class="wl-tag">MAIE — Early Access</div>
     <h1>Join the waitlist</h1>
     <p class="wl-sub">Be first in line when MAIE opens up. A few details help us prioritize the right people first.</p>
@@ -507,12 +643,46 @@
         <div class="wl-msg" id="wl-msg"></div>
       </div>
     </form>
+    </div>
+
+    <div class="wl-threshold" id="continuum-threshold">
+      <h2 class="wl-threshold-headline" id="continuum-threshold-headline">You're in.</h2>
+      <p class="wl-threshold-hint" id="continuum-threshold-hint">Keep scrolling</p>
+    </div>
   </div>
 </main>
 
 <button class="wl-corner wl-corner-skip" id="skip-link" type="button" data-hint="Prefer a plain form?">Show full form</button>
 <a class="wl-corner wl-corner-gh" data-hint="See what we're building" href="https://github.com/maietech" target="_blank" rel="noopener">GitHub</a>
 
+<!-- ── The Continuum — Scenes 2-4, kept out of layout (display:none via
+     .continuum-hidden) until a signup succeeds. See continuum.js. -->
+<div id="continuum" class="continuum-hidden">
+  <section class="continuum-scene" id="continuum-invitation">
+    <div class="continuum-sticky">
+      <canvas class="continuum-pixie-canvas" id="continuum-pixie-canvas"></canvas>
+      <p class="continuum-invite-line" id="continuum-invite-line">Stories aren't watched.<br>They're entered.</p>
+      <p class="continuum-invite-evolve" id="continuum-invite-evolve"></p>
+    </div>
+  </section>
+
+  <section class="continuum-scene" id="continuum-journey" style="height: 320vh;">
+    <div class="continuum-sticky">
+      <p class="continuum-journey-line" id="continuum-journey-line"></p>
+    </div>
+  </section>
+
+  <section class="continuum-scene" id="continuum-transition" style="height: 200vh;">
+    <div class="continuum-sticky">
+      <div class="continuum-curtain" id="continuum-curtain"></div>
+      <h2 class="continuum-welcome" id="continuum-welcome">Welcome.</h2>
+      <a class="continuum-enter-link" id="continuum-enter-link" href="https://joinmaie.com/">Continue to MAIE →</a>
+    </div>
+  </section>
+</div>
+
+<script src="/story-scroll.js"></script>
+<script src="/pixie-companion.js"></script>
 <script>
   // ── Theme toggle ──────────────────────────────────────────────────
   (function () {
@@ -539,6 +709,11 @@
         document.documentElement.setAttribute('data-theme', next);
         try { localStorage.setItem('maie-theme', next); } catch (e) {}
         renderTheme();
+        // Canvas-rendered elements (Pixie, in the Continuum) can't react to
+        // a CSS custom property change on their own — nothing repaints a
+        // canvas automatically. Same event name/convention as joinmaie-
+        // landing's theme.js, so continuum.js's listener matches it.
+        document.dispatchEvent(new CustomEvent('maie:themechange', { detail: { theme: next } }));
       });
     }
   })();
@@ -675,10 +850,16 @@
         });
         const data = await res.json();
         if (res.ok && data.ok) {
-          msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
-          msg.classList.add('ok');
-          form.reset();
-          form.querySelectorAll('.f.has-value').forEach(function (f) { f.classList.remove('has-value'); });
+          // The confirmation doesn't appear in a toast — the interface
+          // itself changes. See continuum.js's Scene 1 (Threshold).
+          if (window.MaieContinuum) {
+            window.MaieContinuum.begin({ alreadyJoined: !!data.alreadyJoined });
+          } else {
+            msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
+            msg.classList.add('ok');
+            form.reset();
+            form.querySelectorAll('.f.has-value').forEach(function (f) { f.classList.remove('has-value'); });
+          }
         } else {
           msg.textContent = data.error || 'Something went wrong. Try again.';
           msg.classList.add('err');
@@ -693,5 +874,6 @@
     });
   })();
 </script>
+<script src="/continuum.js"></script>
 </body>
 </html>
