@@ -8,13 +8,47 @@ are Workers under the hood, shipped with the static site as one unit.
 ## What's in this repo
 ```
 index.html                    the waitlist page itself
-functions/api/waitlist.ts      POST = save signup + notify; GET = CSV export
-schema.sql                     D1 table definition
+functions/api/waitlist.ts     POST = save signup + notify; GET = CSV export (auth header required)
+functions/api/events.ts       POST = anonymous funnel telemetry (see "The Demand Engine" below)
+functions/api/survey.ts       POST = post-welcome micro-survey answers, enriches an existing signup
+functions/api/_shared.ts      shared validation/enum/scoring helpers used by all three functions above
+schema.sql                    D1 table definitions — fresh-install canonical schema
+migrations/0002_demand_engine.sql   non-destructive upgrade path for an existing deployed DB
 wrangler.toml                  local dev config / D1 binding reference
+telemetry.js                   session id + UTM/referral capture + event beacon — loads first
 continuum.js                   post-signup cinematic sequence — see below
 pixie-companion.js             ported verbatim from joinmaie-landing, unmodified
 story-scroll.js                ported verbatim from joinmaie-landing, unmodified
 ```
+
+## The Demand Engine
+
+Three additions turn the waitlist from lead capture into something that
+also tells you *why* people showed up and how likely they are to convert:
+
+- **Silent attribution** — `telemetry.js` reads `utm_source/medium/campaign/
+  content/term` and a `?ref=` referral code from the URL once per browser
+  session, alongside `document.referrer` and the landing path, and sends
+  them along with the waitlist submission. None of this is a form field;
+  the visitor never sees it.
+- **Anonymous funnel telemetry** — the same script assigns a random
+  `session_id` (sessionStorage, not a cookie) and fires fire-and-forget
+  beacons to `/api/events` at each funnel step (`landing_view` through
+  `portal_redirected`; see the `ALLOWED_EVENTS` list in
+  `functions/api/_shared.ts`). These rows carry no email — they only
+  become attributable to a person if that same `session_id` later shows
+  up on a `signups` row.
+- **Post-welcome micro-survey** — three optional, one-tap-at-a-time
+  questions (what brings you here / what you'd want to do first / when
+  you'd want to start) appear on the final "Welcome." curtain, well after
+  submission. Answering any of it calls `/api/survey`, which enriches the
+  already-created signup with `interest_domain`, `intent`, `use_case`,
+  `timing`, and `early_access_interest`, and recomputes `demand_score`.
+  Skipping it, or ignoring it entirely, changes nothing else about the
+  experience.
+
+`lead_status` and `demand_score` are internal-only columns — nothing in
+the UI ever shows or gates on them.
 
 ## The Continuum
 
@@ -51,6 +85,12 @@ From your machine, with `wrangler` installed and logged in:
 ```
 wrangler d1 execute maie_waitlist --remote --file=./schema.sql
 ```
+If this D1 database already has a deployed `signups` table from before,
+do **not** re-run `schema.sql` — apply the non-destructive upgrade
+instead, which only adds columns/tables and never touches existing rows:
+```
+wrangler d1 execute maie_waitlist --remote --file=./migrations/0002_demand_engine.sql
+```
 
 **3. Create the Pages project**
 Dashboard → **Compute** → **Workers & Pages** → **Ship something new** →
@@ -68,7 +108,7 @@ not plaintext):
 - `RESEND_API_KEY` — from resend.com after you verify `joinmaie.com` as a sending domain there
 - `NOTIFY_FROM` — e.g. `MAIE Waitlist <waitlist@joinmaie.com>`
 - `NOTIFY_TO` — e.g. `founders@joinmaie.com`
-- `ADMIN_TOKEN` — any long random string; this is what protects the CSV export (`GET /api/waitlist?token=...`)
+- `ADMIN_TOKEN` — any long random string; this is what protects the CSV export. Sent as an `Authorization: Bearer` header now, not a `?token=` query param — see "Pulling signups" below for why.
 
 **6. Attach the domain**
 Pages project → **Custom domains** → **Set up a custom domain** →
@@ -91,11 +131,29 @@ https://waitlist.joinmaie.com
 
 ## Pulling signups
 ```
-https://waitlist.joinmaie.com/api/waitlist?token=YOUR_ADMIN_TOKEN
+curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  https://waitlist.joinmaie.com/api/waitlist -o maie-waitlist.csv
 ```
-Returns a CSV of every signup (email, name, company, role, github
-username, how they found you, interests, timestamp, whether the
-notification email went out). Safe to open in Sheets/Excel directly.
+A query-string `?token=...` used to work here — it's been removed on
+purpose. Query params land in server access logs, browser history, and
+`Referer` headers on any outbound request from that page, so a static
+token there should be treated as already leaked. A header isn't logged
+the same way. This is still one shared secret, not per-admin auth or
+short-lived tokens — fine for pulling data yourself, worth revisiting
+before handing export access to a team (see item 14 in the audit notes).
+
+Returns a CSV of every signup: identity (email, name, company, role,
+github username), interests, the post-welcome survey fields
+(`interest_domain`, `intent`, `use_case`, `timing`,
+`early_access_interest`), acquisition (`found_via` plus the UTM/referral
+fields captured silently by `telemetry.js`), `lead_status` and
+`demand_score`, `session_id`, and all timestamps. Safe to open in
+Sheets/Excel directly.
+
+Anonymous funnel events (`landing_view` … `portal_redirected`) live in
+the separate `events` table — pull those directly via `wrangler d1
+execute maie_waitlist --remote --command "SELECT * FROM events ..."`
+until/unless that gets its own export endpoint.
 
 ## Local testing
 ```

@@ -545,6 +545,56 @@
     opacity: 0; transition: opacity 0.3s ease, color 0.3s ease;
   }
   .continuum-enter-link:hover, .continuum-enter-link:focus-visible { color: var(--primary-light); }
+
+  /* ── Scene 4.5: "Help us build MAIE" — optional 3-question micro-survey.
+     Deliberately not another form: one question visible at a time, tap a
+     pill to answer and reveal the next, skippable at any point. Lives on
+     the same curtain as Welcome — see form-overview.md item 12. */
+  .continuum-survey {
+    position: relative; z-index: 2;
+    margin-top: 30px; max-width: 360px;
+    opacity: 0;
+  }
+  .continuum-survey-kicker {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2); opacity: 0.7; margin: 0 0 12px;
+  }
+  .continuum-survey-q {
+    display: none; opacity: 0; transform: translateY(8px);
+    transition: opacity 0.35s var(--ease-cinema), transform 0.35s var(--ease-cinema);
+  }
+  .continuum-survey-q.csq-active { display: block; }
+  .continuum-survey-q.csq-in { opacity: 1; transform: translateY(0); }
+  .continuum-survey-q.csq-done { display: none; }
+  .continuum-survey-label {
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--text-1);
+    margin: 0 0 10px;
+  }
+  .continuum-survey-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .continuum-survey-pill {
+    appearance: none; cursor: pointer;
+    font-family: var(--font-ui); font-size: 12.5px; color: var(--text-2);
+    background: none; border: 1px solid var(--border, rgba(255,255,255,0.16));
+    border-radius: 999px; padding: 7px 14px;
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .continuum-survey-pill:hover, .continuum-survey-pill:focus-visible { color: var(--text-1); border-color: var(--primary-light); }
+  .continuum-survey-thanks {
+    font-family: var(--font-ui); font-size: 13px; color: var(--text-2);
+    opacity: 0; transition: opacity 0.4s var(--ease-cinema);
+  }
+  .continuum-survey-thanks.csq-in { opacity: 1; }
+  .continuum-survey-skip {
+    display: inline-block; margin-top: 14px;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-2); opacity: 0.5;
+    background: none; border: none; cursor: pointer;
+    transition: opacity 0.25s ease, color 0.25s ease;
+  }
+  .continuum-survey-skip:hover, .continuum-survey-skip:focus-visible { opacity: 1; color: var(--primary-light); }
+  @media (prefers-reduced-motion: reduce) {
+    .continuum-survey, .continuum-survey-q, .continuum-survey-thanks { transition: opacity 0.2s linear; transform: none; }
+  }
 </style>
 </head>
 <body>
@@ -701,11 +751,50 @@
     <div class="continuum-sticky">
       <div class="continuum-curtain" id="continuum-curtain"></div>
       <h2 class="continuum-welcome" id="continuum-welcome">Welcome.</h2>
+
+      <div class="continuum-survey" id="continuum-survey">
+        <p class="continuum-survey-kicker">Help us build MAIE — optional</p>
+
+        <div class="continuum-survey-q csq-active" id="csq-0" data-field="interest_domain">
+          <p class="continuum-survey-label">What brings you here?</p>
+          <div class="continuum-survey-options">
+            <button type="button" class="continuum-survey-pill" data-value="maie">MAIE's technology</button>
+            <button type="button" class="continuum-survey-pill" data-value="midwest_media_alliance">The Midwest Media Alliance mission</button>
+            <button type="button" class="continuum-survey-pill" data-value="both">Both</button>
+            <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
+          </div>
+        </div>
+
+        <div class="continuum-survey-q" id="csq-1" data-field="intent">
+          <p class="continuum-survey-label">What would you want to do first?</p>
+          <div class="continuum-survey-options">
+            <button type="button" class="continuum-survey-pill" data-value="early_access">Get early access</button>
+            <button type="button" class="continuum-survey-pill" data-value="beta_test">Test features</button>
+            <button type="button" class="continuum-survey-pill" data-value="build">Build with it</button>
+            <button type="button" class="continuum-survey-pill" data-value="explore">Just look around</button>
+          </div>
+        </div>
+
+        <div class="continuum-survey-q" id="csq-2" data-field="timing">
+          <p class="continuum-survey-label">When would you want to start?</p>
+          <div class="continuum-survey-options">
+            <button type="button" class="continuum-survey-pill" data-value="asap">As soon as possible</button>
+            <button type="button" class="continuum-survey-pill" data-value="within_1_month">Within a month</button>
+            <button type="button" class="continuum-survey-pill" data-value="within_3_months">Within 3 months</button>
+            <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
+          </div>
+        </div>
+
+        <p class="continuum-survey-thanks" id="continuum-survey-thanks">Thanks — this helps a lot.</p>
+        <button type="button" class="continuum-survey-skip" id="continuum-survey-skip">Skip</button>
+      </div>
+
       <a class="continuum-enter-link" id="continuum-enter-link" href="https://joinmaie.com/">Continue to MAIE →</a>
     </div>
   </section>
 </div>
 
+<script src="/telemetry.js"></script>
 <script src="/story-scroll.js"></script>
 <script src="/pixie-companion.js"></script>
 <script>
@@ -796,6 +885,8 @@
       if (skipLink) skipLink.style.display = 'none';
     }
 
+    var started = false;
+
     function advanceFrom(index) {
       if (index === 0) {
         var emailInput = document.getElementById('email');
@@ -808,6 +899,13 @@
           return;
         }
         emailInput.removeAttribute('aria-invalid');
+      }
+      if (!started && window.MaieTelemetry) {
+        started = true;
+        window.MaieTelemetry.track('waitlist_started');
+      }
+      if (window.MaieTelemetry) {
+        window.MaieTelemetry.track('waitlist_stage_completed', { stage: index });
       }
       reveal(index + 1);
     }
@@ -856,6 +954,7 @@
       btn.textContent = 'Joining…';
 
       const fd = new FormData(form);
+      const attribution = (window.MaieTelemetry && window.MaieTelemetry.attribution) || {};
       const payload = {
         email: fd.get('email'),
         name: fd.get('name'),
@@ -865,6 +964,15 @@
         found_via: fd.get('found_via'),
         interests: fd.getAll('interests'),
         company_website: fd.get('company_website'), // honeypot
+        session_id: window.MaieTelemetry ? window.MaieTelemetry.sessionId : null,
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        utm_campaign: attribution.utm_campaign,
+        utm_content: attribution.utm_content,
+        utm_term: attribution.utm_term,
+        referral_code: attribution.referral_code,
+        referrer_url: attribution.referrer_url,
+        landing_path: attribution.landing_path,
       };
 
       try {
@@ -875,10 +983,13 @@
         });
         const data = await res.json();
         if (res.ok && data.ok) {
+          if (window.MaieTelemetry) {
+            window.MaieTelemetry.track(data.alreadyJoined ? 'already_registered' : 'waitlist_submitted');
+          }
           // The confirmation doesn't appear in a toast — the interface
           // itself changes. See continuum.js's Scene 1 (Threshold).
           if (window.MaieContinuum) {
-            window.MaieContinuum.begin({ alreadyJoined: !!data.alreadyJoined });
+            window.MaieContinuum.begin({ alreadyJoined: !!data.alreadyJoined, email: payload.email });
           } else {
             msg.textContent = data.alreadyJoined ? "You're already on the list." : "You're on the list — thanks!";
             msg.classList.add('ok');

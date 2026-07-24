@@ -17,11 +17,18 @@
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var started = false;
+  var signupEmail = null;
+
+  function track(name, metadata) {
+    if (window.MaieTelemetry) window.MaieTelemetry.track(name, metadata);
+  }
 
   function begin(opts) {
     if (started) return;
     started = true;
     opts = opts || {};
+    signupEmail = opts.email || null;
+    track('threshold_viewed');
 
     var formStage = document.getElementById('wl-form-stage');
     var threshold = document.getElementById('continuum-threshold');
@@ -66,6 +73,7 @@
     initInvitation();
     initJourney();
     initTransition();
+    initSurvey();
   }
 
   // ── Environmental storytelling ───────────────────────────────────────
@@ -120,6 +128,7 @@
       { at: 0.60, text: 'Almost there.', temperament: 'celebrating' },
     ];
     var shown = {};
+    var pixieStartedTracked = false;
 
     function render(progress, isStatic) {
       // Reduced motion: this scene's whole arc (appear -> evolve ->
@@ -133,11 +142,16 @@
         canvas.style.opacity = 1;
         if (line) line.style.opacity = 1;
         if (evolve) evolve.style.opacity = 0;
+        if (!pixieStartedTracked) { pixieStartedTracked = true; track('pixie_started'); }
         return;
       }
 
       var presence = progress < 0.80 ? Math.min(1, progress / 0.10) : Math.max(0, 1 - (progress - 0.80) / 0.06);
       canvas.style.opacity = presence;
+      if (presence > 0 && !pixieStartedTracked) {
+        pixieStartedTracked = true;
+        track('pixie_started');
+      }
       if (line) line.style.opacity = window.storyStageWeight(progress, 0.10, 0.26, 0.05, 0.06);
 
       EVOLVE.forEach(function (s, i) {
@@ -176,6 +190,7 @@
       { start: 0.80, end: 1.00, text: 'You’re not waiting.<br>You’re arriving.' },
     ];
     var activeIdx = -1;
+    var completedTracked = false;
 
     function render(progress) {
       var top = 0, topW = 0;
@@ -185,6 +200,10 @@
       });
       if (top !== activeIdx) { activeIdx = top; el.innerHTML = LINES[top].text; }
       el.style.opacity = topW;
+      if (progress >= 0.98 && !completedTracked) {
+        completedTracked = true;
+        track('journey_completed');
+      }
     }
 
     // The last line's window ends exactly at 1.00 (same idiom scene-
@@ -195,11 +214,19 @@
   }
 
   // ── Scene 4: The Transition — the page itself becomes the curtain. ──
+  // Auto-navigation is deliberately paused once the visitor engages with
+  // the survey below (see initSurvey/surveyEngaged) — instrumenting the
+  // moment shouldn't cut it short. Nothing here blocks a visitor who
+  // ignores the survey entirely; it behaves exactly as before for them.
+  var surveyEngaged = false;
+  var navigateToPortal = null;
+
   function initTransition() {
     var section = document.getElementById('continuum-transition');
     var curtain = document.getElementById('continuum-curtain');
     var welcome = document.getElementById('continuum-welcome');
     var link = document.getElementById('continuum-enter-link');
+    var survey = document.getElementById('continuum-survey');
     if (!section || !curtain) return;
 
     var navigateTimer = null;
@@ -207,10 +234,20 @@
     var DWELL_MS = 1000;
     var DEST = 'https://joinmaie.com/';
 
+    function go() {
+      if (navigated) return;
+      navigated = true;
+      track('portal_redirected');
+      window.location.href = DEST;
+    }
+    navigateToPortal = go;
+    if (link) link.addEventListener('click', function () { track('portal_redirected'); });
+
     function render(progress, isStatic) {
       curtain.style.opacity = window.storyStageWeight(progress, 0.35, 1.00, 0.15, 0);
       if (welcome) welcome.style.opacity = window.storyStageWeight(progress, 0.75, 1.00, 0.15, 0);
       if (link) link.style.opacity = window.storyStageWeight(progress, 0.85, 1.00, 0.10, 0);
+      if (survey) survey.style.opacity = window.storyStageWeight(progress, 0.85, 1.00, 0.10, 0);
 
       // Reduced motion (and the one-shot static call every scene gets)
       // renders the settled curtain + Welcome + link above, but never
@@ -219,18 +256,113 @@
       // (the link) whenever motion is reduced.
       if (reducedMotion || isStatic) return;
 
-      if (progress >= 0.98 && !navigated && !navigateTimer) {
-        navigateTimer = setTimeout(function () {
-          navigated = true;
-          window.location.href = DEST;
-        }, DWELL_MS);
-      } else if (progress < 0.98 && navigateTimer) {
+      if (progress >= 0.98 && !navigated && !navigateTimer && !surveyEngaged) {
+        navigateTimer = setTimeout(go, DWELL_MS);
+      } else if ((progress < 0.98 || surveyEngaged) && navigateTimer) {
         clearTimeout(navigateTimer);
         navigateTimer = null;
       }
     }
 
     window.initScrollScene(section, function (progress, isStatic) { render(progress, isStatic); });
+  }
+
+  // ── Scene 4.5: "Help us build MAIE" — optional micro-survey. Answering
+  // one question reveals the next; answering the last (or Skip) submits
+  // whatever was answered and lets the visitor continue on to the portal
+  // link. Entirely optional — ignoring it changes nothing about the rest
+  // of the experience. See form-overview.md item 12. ───────────────────
+  function initSurvey() {
+    var root = document.getElementById('continuum-survey');
+    var thanks = document.getElementById('continuum-survey-thanks');
+    var skipBtn = document.getElementById('continuum-survey-skip');
+    if (!root) return;
+
+    var questions = Array.prototype.slice.call(root.querySelectorAll('.continuum-survey-q'));
+    var answers = {};
+    var activeIdx = 0;
+    var finished = false;
+
+    function reveal(idx) {
+      questions.forEach(function (q, i) {
+        q.classList.toggle('csq-active', i === idx);
+        if (i === idx) {
+          if (reducedMotion) {
+            q.classList.add('csq-in');
+          } else {
+            requestAnimationFrame(function () { q.classList.add('csq-in'); });
+          }
+        }
+      });
+    }
+
+    function engage() {
+      if (surveyEngaged) return;
+      surveyEngaged = true;
+      track('micro_survey_started');
+    }
+
+    function finish(skipped) {
+      if (finished) return;
+      finished = true;
+      questions.forEach(function (q) { q.classList.add('csq-done'); });
+      if (skipBtn) skipBtn.style.display = 'none';
+
+      if (skipped) {
+        track('micro_survey_skipped', answers);
+        resumeNavigation();
+        return;
+      }
+
+      if (thanks) thanks.classList.add('csq-in');
+      track('micro_survey_completed', answers);
+
+      if (signupEmail) {
+        fetch('/api/survey', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(Object.assign({ email: signupEmail }, answers)),
+        }).catch(function () { /* best-effort — the funnel event above already fired */ });
+      }
+
+      resumeNavigation();
+    }
+
+    function resumeNavigation() {
+      // Auto-nav was paused for engage() above; once the visitor is done
+      // with the survey (answered or skipped), give it a short beat and
+      // continue as if they'd never paused it. Reduced motion never
+      // auto-navigates, same as the rest of this scene — the "Continue to
+      // MAIE" link stays the way through.
+      surveyEngaged = false;
+      if (reducedMotion || !navigateToPortal) return;
+      setTimeout(function () { if (navigateToPortal) navigateToPortal(); }, 1400);
+    }
+
+    questions.forEach(function (q, idx) {
+      var field = q.getAttribute('data-field');
+      q.querySelectorAll('.continuum-survey-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          engage();
+          answers[field] = pill.getAttribute('data-value');
+          if (idx + 1 < questions.length) {
+            activeIdx = idx + 1;
+            reveal(activeIdx);
+          } else {
+            finish(false);
+          }
+        });
+      });
+    });
+
+    if (skipBtn) {
+      skipBtn.addEventListener('click', function () {
+        engage();
+        finish(true);
+      });
+    }
+
+    reveal(0);
   }
 
   window.MaieContinuum = { begin: begin };
