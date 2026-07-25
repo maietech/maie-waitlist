@@ -251,7 +251,12 @@
     if (link) link.addEventListener('click', function () { track('portal_redirected'); });
 
     function render(progress, isStatic) {
-      var curtainWeight = window.storyStageWeight(progress, 0.35, 1.00, 0.15, 0);
+      // fadeIn widened from 0.15 to 0.35 (ramping from progress 0 instead
+      // of 0.20) — a full-bleed rectangle still reads as "a box appearing"
+      // if it snaps to solid too quickly; spreading the same fade over
+      // more of the scene's scroll distance makes it read as the
+      // background gradually taking over rather than popping in.
+      var curtainWeight = window.storyStageWeight(progress, 0.35, 1.00, 0.35, 0);
       curtain.style.opacity = curtainWeight;
       // Drives the haze cross-fade in .continuum-haze's CSS (index.html) —
       // the haze fades out as this fades in, so by the time the curtain is

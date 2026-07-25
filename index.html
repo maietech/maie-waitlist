@@ -570,7 +570,23 @@
   }
 
   /* ── Scene 4: The Transition — the page itself becomes the curtain. */
-  .continuum-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); opacity: 0; }
+  /* .continuum-curtain is a descendant of .continuum-sticky, which is a
+     descendant of <body> — and body has horizontal padding (the page's
+     reading-width gutter). position:absolute's containing block is the
+     nearest positioned ancestor's PADDING box, but that ancestor is
+     itself inset by body's padding, so a plain inset:0 here only ever
+     reached the edges of that already-inset box — never the actual
+     viewport edges. Net effect: the curtain rendered ~24px short of
+     full-bleed on each side, showing as a floating rectangle instead of
+     a true background, on both themes (black on dark, white on light).
+     left:50%/width:100vw/margin-left:-50vw is the standard "breakout"
+     fix — it centers a 100vw-wide box regardless of any ancestor's own
+     width or padding, so it always spans the true viewport width. */
+  .continuum-curtain {
+    position: absolute; top: 0; bottom: 0;
+    left: 50%; width: 100vw; margin-left: -50vw;
+    z-index: 1; background: var(--bg); opacity: 0;
+  }
 
   /* --continuum-curtain (0→1) mirrors .continuum-curtain's own opacity —
      set alongside it in continuum.js's initTransition render(). .continuum-haze
@@ -583,7 +599,13 @@
      nothing blended over it anymore, which reads as a big flat black
      box. Fading the haze's own strength to zero instead leaves the
      curtain's rendering untouched and simply removes the haze as a
-     factor before it matters. */
+     factor before it matters.
+
+     The curtain's own fade-in (see continuum.js) was also widened to
+     ramp up across most of the scene rather than a short window near the
+     end — a full-bleed rectangle still reads as "a box appearing" if it
+     snaps to solid too quickly; spreading the same fade over more scroll
+     distance makes it read as the background gradually taking over. */
 
   /* ── The clarity panel — deliberately the one un-hazy, un-blurred thing
      in the whole Continuum. Everything before this point gets moodier as
