@@ -251,7 +251,12 @@
     if (link) link.addEventListener('click', function () { track('portal_redirected'); });
 
     function render(progress, isStatic) {
-      curtain.style.opacity = window.storyStageWeight(progress, 0.35, 1.00, 0.15, 0);
+      var curtainWeight = window.storyStageWeight(progress, 0.35, 1.00, 0.15, 0);
+      curtain.style.opacity = curtainWeight;
+      // Drives the haze cross-fade in .continuum-haze's CSS (index.html) —
+      // the haze fades out as this fades in, so by the time the curtain is
+      // visible the haze is contributing nothing to blur.
+      document.documentElement.style.setProperty('--continuum-curtain', curtainWeight);
       // The panel leads — it materializes first, then Welcome and the
       // survey fade in on top of it, so it never reads as text appearing
       // on top of the still-hazy backdrop.
