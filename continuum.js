@@ -152,7 +152,7 @@
         pixieStartedTracked = true;
         track('pixie_started');
       }
-      if (line) line.style.opacity = window.storyStageWeight(progress, 0.10, 0.26, 0.05, 0.06);
+      if (line) line.style.opacity = window.storyStageWeight(progress, 0.08, 0.36, 0.06, 0.08);
 
       EVOLVE.forEach(function (s, i) {
         if (progress >= s.at && !shown[i]) {
@@ -224,6 +224,7 @@
   function initTransition() {
     var section = document.getElementById('continuum-transition');
     var curtain = document.getElementById('continuum-curtain');
+    var clarity = document.getElementById('continuum-clarity');
     var welcome = document.getElementById('continuum-welcome');
     var link = document.getElementById('continuum-enter-link');
     var survey = document.getElementById('continuum-survey');
@@ -231,7 +232,13 @@
 
     var navigateTimer = null;
     var navigated = false;
-    var DWELL_MS = 1000;
+    // Long enough that an unengaged visitor who just kept scrolling
+    // actually gets to read "Welcome." and notice the survey before the
+    // page moves on without them — the previous 1s meant most people
+    // never saw this moment at all. Anyone in a hurry still has the
+    // "Continue to MAIE" link; this is only the default for people who
+    // stop.
+    var DWELL_MS = 3200;
     var DEST = 'https://joinmaie.com/';
 
     function go() {
@@ -245,15 +252,19 @@
 
     function render(progress, isStatic) {
       curtain.style.opacity = window.storyStageWeight(progress, 0.35, 1.00, 0.15, 0);
-      if (welcome) welcome.style.opacity = window.storyStageWeight(progress, 0.75, 1.00, 0.15, 0);
-      if (link) link.style.opacity = window.storyStageWeight(progress, 0.85, 1.00, 0.10, 0);
-      if (survey) survey.style.opacity = window.storyStageWeight(progress, 0.85, 1.00, 0.10, 0);
+      // The panel leads — it materializes first, then Welcome and the
+      // survey fade in on top of it, so it never reads as text appearing
+      // on top of the still-hazy backdrop.
+      if (clarity) clarity.style.opacity = window.storyStageWeight(progress, 0.62, 1.00, 0.14, 0);
+      if (welcome) welcome.style.opacity = window.storyStageWeight(progress, 0.72, 1.00, 0.12, 0);
+      if (link) link.style.opacity = window.storyStageWeight(progress, 0.86, 1.00, 0.10, 0);
+      if (survey) survey.style.opacity = window.storyStageWeight(progress, 0.80, 1.00, 0.12, 0);
 
       // Reduced motion (and the one-shot static call every scene gets)
-      // renders the settled curtain + Welcome + link above, but never
-      // auto-navigates — leaving the page without the visitor acting is a
-      // stronger intervention than a visual animation, so it stays manual
-      // (the link) whenever motion is reduced.
+      // renders the settled curtain + panel + Welcome + link above, but
+      // never auto-navigates — leaving the page without the visitor
+      // acting is a stronger intervention than a visual animation, so it
+      // stays manual (the link) whenever motion is reduced.
       if (reducedMotion || isStatic) return;
 
       if (progress >= 0.98 && !navigated && !navigateTimer && !surveyEngaged) {

@@ -565,6 +565,23 @@
 
   /* ── Scene 4: The Transition — the page itself becomes the curtain. */
   .continuum-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); opacity: 0; }
+
+  /* ── The clarity panel — deliberately the one un-hazy, un-blurred thing
+     in the whole Continuum. Everything before this point gets moodier as
+     you go (see --continuum-atmosphere below); this is the arrival point,
+     so it reads as a solid, bordered surface rather than more of the same
+     glow. Uses the same --surface/--border tokens as the waitlist form
+     itself, so it feels like a continuation of it, not a new object. */
+  .continuum-clarity {
+    position: relative; z-index: 3;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 44px 40px;
+    width: min(90vw, 420px);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.38);
+    opacity: 0;
+  }
   .continuum-welcome {
     position: relative; z-index: 2;
     font-family: var(--font-display);
@@ -771,7 +788,7 @@
 <!-- ── The Continuum — Scenes 2-4, kept out of layout (display:none via
      .continuum-hidden) until a signup succeeds. See continuum.js. -->
 <div id="continuum" class="continuum-hidden">
-  <section class="continuum-scene" id="continuum-invitation">
+  <section class="continuum-scene" id="continuum-invitation" style="height: 340vh;">
     <div class="continuum-sticky">
       <canvas class="continuum-pixie-canvas" id="continuum-pixie-canvas"></canvas>
       <p class="continuum-invite-line" id="continuum-invite-line">Stories aren't watched.<br>They're entered.</p>
@@ -779,55 +796,58 @@
     </div>
   </section>
 
-  <section class="continuum-scene" id="continuum-journey" style="height: 320vh;">
+  <section class="continuum-scene" id="continuum-journey" style="height: 460vh;">
     <div class="continuum-sticky">
       <p class="continuum-journey-line" id="continuum-journey-line"></p>
     </div>
   </section>
 
-  <section class="continuum-scene" id="continuum-transition" style="height: 200vh;">
+  <section class="continuum-scene" id="continuum-transition" style="height: 260vh;">
     <div class="continuum-sticky">
       <div class="continuum-curtain" id="continuum-curtain"></div>
-      <h2 class="continuum-welcome" id="continuum-welcome">Welcome.</h2>
 
-      <div class="continuum-survey" id="continuum-survey">
-        <p class="continuum-survey-kicker">Help us build MAIE — optional</p>
+      <div class="continuum-clarity" id="continuum-clarity">
+        <h2 class="continuum-welcome" id="continuum-welcome">Welcome.</h2>
 
-        <div class="continuum-survey-q csq-active" id="csq-0" data-field="interest_domain">
-          <p class="continuum-survey-label">What brings you here?</p>
-          <div class="continuum-survey-options">
-            <button type="button" class="continuum-survey-pill" data-value="maie">MAIE's technology</button>
-            <button type="button" class="continuum-survey-pill" data-value="midwest_media_alliance">The Midwest Media Alliance mission</button>
-            <button type="button" class="continuum-survey-pill" data-value="both">Both</button>
-            <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
+        <div class="continuum-survey" id="continuum-survey">
+          <p class="continuum-survey-kicker">Help us build MAIE — optional</p>
+
+          <div class="continuum-survey-q csq-active" id="csq-0" data-field="interest_domain">
+            <p class="continuum-survey-label">What brings you here?</p>
+            <div class="continuum-survey-options">
+              <button type="button" class="continuum-survey-pill" data-value="maie">MAIE's technology</button>
+              <button type="button" class="continuum-survey-pill" data-value="midwest_media_alliance">The Midwest Media Alliance mission</button>
+              <button type="button" class="continuum-survey-pill" data-value="both">Both</button>
+              <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
+            </div>
           </div>
+
+          <div class="continuum-survey-q" id="csq-1" data-field="intent">
+            <p class="continuum-survey-label">What would you want to do first?</p>
+            <div class="continuum-survey-options">
+              <button type="button" class="continuum-survey-pill" data-value="early_access">Get early access</button>
+              <button type="button" class="continuum-survey-pill" data-value="beta_test">Test features</button>
+              <button type="button" class="continuum-survey-pill" data-value="build">Build with it</button>
+              <button type="button" class="continuum-survey-pill" data-value="explore">Just look around</button>
+            </div>
+          </div>
+
+          <div class="continuum-survey-q" id="csq-2" data-field="timing">
+            <p class="continuum-survey-label">When would you want to start?</p>
+            <div class="continuum-survey-options">
+              <button type="button" class="continuum-survey-pill" data-value="asap">As soon as possible</button>
+              <button type="button" class="continuum-survey-pill" data-value="within_1_month">Within a month</button>
+              <button type="button" class="continuum-survey-pill" data-value="within_3_months">Within 3 months</button>
+              <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
+            </div>
+          </div>
+
+          <p class="continuum-survey-thanks" id="continuum-survey-thanks">Thanks — this helps a lot.</p>
+          <button type="button" class="continuum-survey-skip" id="continuum-survey-skip">Skip</button>
         </div>
 
-        <div class="continuum-survey-q" id="csq-1" data-field="intent">
-          <p class="continuum-survey-label">What would you want to do first?</p>
-          <div class="continuum-survey-options">
-            <button type="button" class="continuum-survey-pill" data-value="early_access">Get early access</button>
-            <button type="button" class="continuum-survey-pill" data-value="beta_test">Test features</button>
-            <button type="button" class="continuum-survey-pill" data-value="build">Build with it</button>
-            <button type="button" class="continuum-survey-pill" data-value="explore">Just look around</button>
-          </div>
-        </div>
-
-        <div class="continuum-survey-q" id="csq-2" data-field="timing">
-          <p class="continuum-survey-label">When would you want to start?</p>
-          <div class="continuum-survey-options">
-            <button type="button" class="continuum-survey-pill" data-value="asap">As soon as possible</button>
-            <button type="button" class="continuum-survey-pill" data-value="within_1_month">Within a month</button>
-            <button type="button" class="continuum-survey-pill" data-value="within_3_months">Within 3 months</button>
-            <button type="button" class="continuum-survey-pill" data-value="exploring">Just exploring</button>
-          </div>
-        </div>
-
-        <p class="continuum-survey-thanks" id="continuum-survey-thanks">Thanks — this helps a lot.</p>
-        <button type="button" class="continuum-survey-skip" id="continuum-survey-skip">Skip</button>
+        <a class="continuum-enter-link" id="continuum-enter-link" href="https://joinmaie.com/">Continue to MAIE →</a>
       </div>
-
-      <a class="continuum-enter-link" id="continuum-enter-link" href="https://joinmaie.com/">Continue to MAIE →</a>
     </div>
   </section>
 </div>

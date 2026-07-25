@@ -82,6 +82,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (String(err?.message || "").includes("UNIQUE")) {
       return json({ ok: true, alreadyJoined: true });
     }
+    // Anything else (most commonly: the D1 schema doesn't have a column
+    // this INSERT references yet — e.g. migrations/0002_demand_engine.sql
+    // hasn't been applied to the live database) was previously swallowed
+    // into a generic 500 with no way to tell which. Surface it via
+    // `wrangler pages deployment tail` instead of guessing next time.
+    console.log(`Waitlist insert failed: ${err?.message || err}`);
     return json({ ok: false, error: "Could not save signup." }, 500);
   }
 
