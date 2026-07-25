@@ -566,6 +566,20 @@
   /* ── Scene 4: The Transition — the page itself becomes the curtain. */
   .continuum-curtain { position: absolute; inset: 0; z-index: 1; background: var(--bg); opacity: 0; }
 
+  /* .continuum-haze is position:fixed with an explicit z-index:1, so it
+     forms its own stacking context at the document root. .continuum-sticky
+     (position:sticky, z-index:auto) also forms a stacking context of its
+     own, but with z-index:auto — which stacks BELOW any sibling context
+     that has an explicit positive z-index, regardless of what z-index its
+     own children (like .continuum-clarity, z-index:3) use internally.
+     Net effect without this rule: .continuum-haze paints on top of the
+     entire transition scene, and since --continuum-atmosphere (driving
+     the haze) peaks at 1 right as this scene arrives, its own
+     backdrop-filter blurs the "clear" panel instead of sitting behind it.
+     Promoting the sticky container above the haze's z-index fixes this at
+     the source, rather than fighting it with more z-index on the panel. */
+  #continuum-transition .continuum-sticky { z-index: 2; }
+
   /* ── The clarity panel — deliberately the one un-hazy, un-blurred thing
      in the whole Continuum. Everything before this point gets moodier as
      you go (see --continuum-atmosphere below); this is the arrival point,
@@ -573,13 +587,13 @@
      glow. Uses the same --surface/--border tokens as the waitlist form
      itself, so it feels like a continuation of it, not a new object.
 
-     backdrop-filter (not z-index) is what actually guarantees this: it
-     blurs whatever is composited BEHIND the panel, never the panel's own
-     children, so the text stays sharp regardless of how the haze/orb
-     layers behind it are stacked or how intense --continuum-atmosphere
-     gets. The panel's own background is left slightly translucent (94%)
-     specifically so that blur reads as a visible frosted-glass effect
-     rather than being redundant behind full opacity. */
+     backdrop-filter is what guarantees the panel's OWN children stay
+     sharp (it blurs only what's composited behind the panel, never its
+     own content) — but that only holds once the panel is actually
+     stacked above the haze layer, which is what the z-index rule above
+     is for. The panel's own background is left slightly translucent
+     (92%) specifically so that blur reads as a visible frosted-glass
+     effect rather than being redundant behind full opacity. */
   .continuum-clarity {
     position: relative; z-index: 3;
     background: rgba(17,19,24,0.92);
