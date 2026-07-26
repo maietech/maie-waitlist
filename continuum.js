@@ -111,8 +111,22 @@
     var evolve = document.getElementById('continuum-invite-evolve');
     if (!section || !canvas || !window.initPixieCompanion) return;
 
+    // Pixie's base size is 96 (see pixie-companion.js — cssW/cssH work out
+    // to size * 2.5, so 96 -> 240px). +60% gives her more presence on
+    // wider screens, but the same +60% on a narrow phone (96 -> ~384px)
+    // would overflow .continuum-sticky's padded box (padding: 0 24px) and
+    // get clipped by its overflow:hidden, or crowd .continuum-invite-line
+    // right below her. 480px matches the mobile breakpoint already used
+    // for form layout elsewhere on this page (see .f-row2); below it she
+    // only grows +30% (96 -> ~125px), which comfortably clears the invite
+    // line at that width. Read once at init, same as `reducedMotion`
+    // above — Pixie is only ever constructed once per signup, so this
+    // doesn't need to track live viewport resizes.
+    var pixieIsMobile = window.matchMedia && window.matchMedia('(max-width: 480px)').matches;
+    var pixieSize = 96 * (pixieIsMobile ? 1.3 : 1.6);
+
     var pixieHandle = window.initPixieCompanion(canvas, {
-      size: 96, mode: 'ambient', phase: 'idle', archetype: 'archivist',
+      size: pixieSize, mode: 'ambient', phase: 'idle', archetype: 'archivist',
       temperament: 'curious',
       theme: window.getPixieThemeColors ? window.getPixieThemeColors() : null,
     });
