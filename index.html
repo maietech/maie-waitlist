@@ -232,8 +232,22 @@
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  /* A quiet last beat after tag/h1/sub settle — not another sentence of
+     copy so much as a visual cue that this isn't a conventional signup
+     form, set in the same muted mono caption style as the hints used
+     later on (.wl-threshold-hint, the intertitles). It's the thing still
+     fading in after everything else has already landed, which is itself
+     part of the point: nothing here is trying to get through quickly. */
+  .wl-cue {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2);
+    margin: -20px 0 36px;
+    opacity: 0; transform: translateY(18px);
+    animation: fadeUp 0.6s var(--ease-cinema) forwards;
+    animation-delay: 0.9s;
+  }
   @media (prefers-reduced-motion: reduce) {
-    .wl-tag, h1, .wl-sub { animation: none; opacity: 1; transform: none; }
+    .wl-tag, h1, .wl-sub, .wl-cue { animation: none; opacity: 1; transform: none; }
   }
 
   form { display: block; }
@@ -741,6 +755,7 @@
     <div class="wl-tag">MAIE — Early Access</div>
     <h1>Join the waitlist</h1>
     <p class="wl-sub">Be first in line when MAIE opens up. A few details help us prioritize the right people first.</p>
+    <p class="wl-cue">Not a form. A beginning.</p>
 
     <form id="wl-form" novalidate>
       <input class="wl-hp" type="text" name="company_website" tabindex="-1" autocomplete="off">
@@ -1201,6 +1216,17 @@
       btn.disabled = true;
       btn.textContent = 'Joining…';
 
+      // "Reserve my spot" is the moment of commitment — it deserves to
+      // register as its own beat, not just whatever a fast connection's
+      // round-trip happens to take. On a quick network the request below
+      // can resolve in well under 100ms, before "Joining…" is even
+      // readable, and the Threshold (see continuum.js) would appear to
+      // just snap into place. This floor only ever adds wait time on top
+      // of an already-finished request — it never makes a slow request
+      // feel slower, and it's short enough to read as weight, not lag.
+      const MIN_COMMIT_MS = 900;
+      const commitStarted = Date.now();
+
       const fd = new FormData(form);
       const attribution = (window.MaieTelemetry && window.MaieTelemetry.attribution) || {};
       const payload = {
@@ -1230,6 +1256,19 @@
           body: JSON.stringify(payload),
         });
         const data = await res.json();
+
+        // Same reduced-motion carve-out the rest of the Continuum uses —
+        // this is a deliberate pause, not an animation, but someone who's
+        // asked their system for less motion has also asked for less
+        // waiting-for-its-own-sake; let the response land as soon as it's
+        // actually ready for them.
+        if (!reduceMotion) {
+          const elapsed = Date.now() - commitStarted;
+          if (elapsed < MIN_COMMIT_MS) {
+            await new Promise(function (resolve) { setTimeout(resolve, MIN_COMMIT_MS - elapsed); });
+          }
+        }
+
         if (res.ok && data.ok) {
           if (window.MaieTelemetry) {
             window.MaieTelemetry.track(data.alreadyJoined ? 'already_registered' : 'waitlist_submitted');
