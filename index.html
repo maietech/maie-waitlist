@@ -379,6 +379,17 @@
   }
   .stage-continue:hover, .stage-continue:focus-visible { opacity: 1; color: var(--primary-light); }
 
+  /* Once the rest of the form has unfolded (see unfoldRest() below), every
+     stage past email is on screen at once — a "Continue ↵" sitting in the
+     middle of an already-fully-visible form has nothing left to reveal and
+     just reads as another thing to hunt for. #wl-form.wl-unfolded is added
+     right when that happens (by unfoldRest() or the "Show full form" skip
+     link, which lands in the same fully-unfolded end state), leaving
+     the single "Reserve my spot" button at the bottom as the one clear
+     next step. Stage 0's own Continue is unaffected — :not([data-stage="0"])
+     — since that one's still a real gate (email needs to validate). */
+  #wl-form.wl-unfolded .stage:not([data-stage="0"]) .stage-continue { display: none; }
+
   .wl-submit-wrap {
     display: none; opacity: 0; transform: translateY(16px);
     transition: opacity 0.45s var(--ease-cinema), transform 0.45s var(--ease-cinema);
@@ -1130,9 +1141,66 @@
     }
 
     function revealAll() {
+      unfolded = true;
+      if (autoUnfoldTimer) { clearTimeout(autoUnfoldTimer); autoUnfoldTimer = null; }
+      form.classList.add('wl-unfolded');
       stages.forEach(function (s) { s.classList.add('stage-revealed', 'stage-in'); s.classList.remove('stage-dim'); });
       revealStage(submitWrap);
       if (skipLink) skipLink.style.display = 'none';
+    }
+
+    // ── Unfold ────────────────────────────────────────────────────────
+    // The one-stage-at-a-time flow below (reveal → advanceFrom → reveal)
+    // is still what actually drives stage 0 (email needs to validate
+    // before there's anything to unfold), but past that it was making
+    // people click "Continue" four more times just to find the submit
+    // button — reported as "hard to find where to continue" once they'd
+    // gotten past email. unfoldRest() reveals every remaining stage
+    // together instead of gating them one at a time, each landing a beat
+    // after the last so it still reads as a sequence rather than a jump
+    // cut, then reveals the submit button once they've all landed.
+    //
+    // Runs either when stage 0's Continue is clicked (see advanceFrom),
+    // or on its own after AUTO_UNFOLD_MS even if it's never clicked at
+    // all — someone who doesn't notice there's a Continue button
+    // shouldn't be stuck looking at just an email field with no other
+    // sign there's more to the form.
+    var unfolded = false;
+    var autoUnfoldTimer = null;
+    var UNFOLD_STAGGER_MS = 90;
+    var AUTO_UNFOLD_MS = 4500;
+
+    function unfoldRest() {
+      if (unfolded) return;
+      unfolded = true;
+      if (autoUnfoldTimer) { clearTimeout(autoUnfoldTimer); autoUnfoldTimer = null; }
+      if (skipLink) skipLink.style.display = 'none';
+      form.classList.add('wl-unfolded');
+
+      // Email (stage 0) recedes slightly, same as it always has once
+      // you're past it — everything from here on is presented together,
+      // so there's no single "current" stage among the rest to spotlight.
+      setActive(1);
+
+      var rest = stages.slice(1);
+      rest.forEach(function (s, i) {
+        var delay = reduceMotion ? 0 : i * UNFOLD_STAGGER_MS;
+        setTimeout(function () { revealStage(s); }, delay);
+      });
+
+      // Only the first newly-revealed field gets focus, and only once —
+      // revealStage() would otherwise try to focus each stage's own
+      // field in turn as they land, which with four of them landing 90ms
+      // apart is just focus fighting itself.
+      if (!reduceMotion) {
+        setTimeout(function () {
+          var firstField = rest[0] && rest[0].querySelector('input:not([type="hidden"]), select, .f-select-trigger');
+          if (firstField) firstField.focus();
+        }, 470);
+      }
+
+      var submitDelay = reduceMotion ? 0 : rest.length * UNFOLD_STAGGER_MS + 260;
+      setTimeout(revealSubmit, submitDelay);
     }
 
     var started = false;
@@ -1158,11 +1226,18 @@
         window.MaieTelemetry.track('waitlist_stage_completed', { stage: index });
       }
 
-      // The last stage's own Continue button *is* the submit action now —
-      // no separate "Reserve my spot" click after it. revealSubmit() still
-      // runs first so the message area (errors, "Joining…") has somewhere
-      // to render, and its button stays as a manual fallback if the
-      // request fails.
+      // Stage 0 (email) is the one real gate — past it, the rest of the
+      // form unfolds together rather than one more single-stage reveal.
+      if (index === 0) {
+        unfoldRest();
+        return;
+      }
+
+      // Reachable only as a fallback: the per-stage Continue buttons for
+      // stage 1+ are hidden once .wl-unfolded is set (see the CSS above),
+      // but this keeps the original one-at-a-time semantics intact for
+      // anything that still calls advanceFrom() directly — the Enter-key
+      // handler below, for instance, before unfoldRest() has run.
       if (index === stages.length - 1) {
         revealSubmit();
         form.requestSubmit();
@@ -1201,7 +1276,15 @@
     if (reduceMotion) {
       revealAll();
     } else {
-      setTimeout(function () { reveal(0); }, 950);
+      setTimeout(function () {
+        reveal(0);
+        // "A few seconds" from when email actually becomes visible, not
+        // from page load — someone who never clicks Continue (doesn't
+        // notice it, isn't sure it's needed, gets distracted) still ends
+        // up seeing the rest of the form; unfoldRest() itself is a no-op
+        // if the click already happened first.
+        autoUnfoldTimer = setTimeout(unfoldRest, AUTO_UNFOLD_MS);
+      }, 950);
     }
 
     // ── Submission ─────────────────────────────────────────────────
