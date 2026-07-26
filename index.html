@@ -201,20 +201,17 @@
     min-height: 100dvh;
   }
   /* body's 64px bottom padding exists to give the pre-signup Assembly
-     card some breathing room above the fold. .continuum-curtain (the
-     full-bleed backdrop for "Welcome.") breaks out of body's left/right
-     padding on purpose (the `left:50%; width:100vw; margin-left:-50vw`
-     trick in its own CSS), but it's sized to exactly match its sticky
-     container's height, not to body's padding — so that trailing 64px
+     card some breathing room above the fold. It's sized for that
+     purpose, not for the Continuum's own scenes — so that trailing 64px
      was still there *after* the end of the last scene, adding scrollable
-     space nothing in the Continuum accounts for. Scrolling all the way
-     down then oversteps into it: the sticky curtain has nowhere left to
-     stick to, un-pins, and scrolls away, exposing a plain, un-curtained
-     strip at the bottom of "Welcome." — reported as an inconsistent
-     background/gap at the edges of that screen. Dropping the padding
-     for the whole Continuum (not just this one scene) means max scroll
-     always lands exactly at the true end of the last section, so the
-     curtain is guaranteed to still be covering the full viewport there. */
+     space nothing in the Continuum accounts for, and scrolling all the
+     way down oversteps into it. (.continuum-curtain is position:fixed
+     now, so it can't visually "un-pin" the way it once did, but that
+     dead 64px of extra scroll past the true end of the last scene is
+     still wrong on its own — nothing is there to see, it just delays
+     wherever max scroll actually lands.) Dropping the padding for the
+     whole Continuum means max scroll always lands exactly at the true
+     end of the last section instead of somewhere past it. */
   body.continuum-active { padding-bottom: 0; }
   .wl-scene {
     position: relative;
@@ -632,18 +629,20 @@
   }
 
   /* ── Scene 4: The Transition — the page itself becomes the curtain. */
-  /* .continuum-curtain is a descendant of .continuum-sticky, which is a
-     descendant of <body> — and body has horizontal padding (the page's
-     reading-width gutter). position:absolute's containing block is the
-     nearest positioned ancestor's PADDING box, but that ancestor is
-     itself inset by body's padding, so a plain inset:0 here only ever
-     reached the edges of that already-inset box — never the actual
-     viewport edges. Net effect: the curtain rendered ~24px short of
-     full-bleed on each side, showing as a floating rectangle instead of
-     a true background, on both themes (black on dark, white on light).
-     left:50%/width:100vw/margin-left:-50vw is the standard "breakout"
-     fix — it centers a 100vw-wide box regardless of any ancestor's own
-     width or padding, so it always spans the true viewport width. */
+  /* .continuum-curtain used to be position:absolute with a
+     left:50%/width:100vw/margin-left:-50vw "breakout," needed because its
+     positioned ancestor (nested inside body's own horizontal padding)
+     was narrower than the viewport, so a plain inset:0 never reached the
+     true edges. But 100vw is measured against the initial containing
+     block, which INCLUDES the vertical scrollbar's width, while the
+     visible viewport (and the % this element was centered against) does
+     not — so the breakout box was always slightly wider than the screen
+     and offset to one side by half the scrollbar's width, leaving a thin
+     sliver of whatever sits behind body (unstyled, no explicit
+     background) visible down that edge. position:fixed sidesteps this
+     entirely: its containing block IS the viewport by definition, so
+     inset:0 reaches the true edges with no vw math, no ancestor padding
+     to break out of, and nothing left over for a scrollbar to throw off. */
   /* The curtain used to be a flat, fully opaque `background: var(--bg)`
      layer — at full weight it read as a solid rectangle dropped on top
      of the page rather than the page's own background taking over, the
@@ -655,8 +654,7 @@
      element's own opacity fading in 0→1 (see continuum.js), the tint and
      blur ease in together — there's no separate ramp to keep in sync. */
   .continuum-curtain {
-    position: absolute; top: 0; bottom: 0;
-    left: 50%; width: 100vw; margin-left: -50vw;
+    position: fixed; inset: 0;
     z-index: 1;
     background: color-mix(in srgb, var(--bg) 84%, transparent);
     backdrop-filter: blur(32px);
