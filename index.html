@@ -623,33 +623,32 @@
 
   /* ── The clarity panel — deliberately the one un-hazy, un-blurred thing
      in the whole Continuum. Everything before this point gets moodier as
-     you go (see --continuum-atmosphere below); this is the arrival point,
-     so it reads as a solid, bordered surface rather than more of the same
-     glow. Uses the same --surface/--border tokens as the waitlist form
-     itself, so it feels like a continuation of it, not a new object.
+     you go (see --continuum-atmosphere below); this is the arrival point.
 
-     backdrop-filter blurs only what's composited BEHIND the panel, never
-     its own children — that part of the panel was always sharp. The
-     actual source of blur was .continuum-haze, a separate fixed layer
-     compositing above the panel at high strength right as this scene
-     arrives; see the --continuum-curtain cross-fade on .continuum-haze
-     above, which neutralizes that before it reaches this panel. The
-     panel's own background is left slightly translucent (92%)
-     specifically so that blur reads as a visible frosted-glass effect
-     rather than being redundant behind full opacity. */
+     It used to render as a bordered, drop-shadowed --surface card (92%
+     opacity + backdrop-filter blur) sitting on top of the curtain, on the
+     theory that it needed its own opaque-ish surface to stay clear of the
+     haze. In practice the haze is already crossfaded to exactly 0 by the
+     time this panel starts to appear (--continuum-curtain reaches full
+     weight at progress 0.35; clarity doesn't even start fading in until
+     0.48 — see continuum.js's initTransition), so that opaque surface was
+     never actually doing any anti-blur work. What it *was* doing: sitting
+     at --surface (a distinctly lighter dark-grey than --bg) on top of a
+     flat --bg curtain, which reads as a separate floating card rather than
+     the arrival point of the same page — a rounded, shadowed rectangle
+     hanging in a solid void. Dropping the fill/border/shadow/blur
+     entirely lets this panel's content sit directly on the curtain, which
+     is the same --bg as the rest of the page, so there's nothing left to
+     look inconsistent. Nothing here was ever blurring its own children
+     (backdrop-filter only ever blurred what's behind an element, never
+     its contents) — the survey and "Welcome." stay exactly as sharp as
+     before, just without the mismatched backdrop under them. */
   .continuum-clarity {
     position: relative; z-index: 3;
-    background: rgba(17,19,24,0.92);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid var(--border);
-    border-radius: 22px;
     padding: 44px 40px;
     width: min(90vw, 420px);
-    box-shadow: 0 30px 80px rgba(0,0,0,0.38);
     opacity: 0;
   }
-  [data-theme="light"] .continuum-clarity { background: rgba(255,255,255,0.92); }
   .continuum-welcome {
     position: relative; z-index: 2;
     font-family: var(--font-display);
