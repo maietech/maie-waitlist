@@ -220,6 +220,9 @@
   // ignores the survey entirely; it behaves exactly as before for them.
   var surveyEngaged = false;
   var navigateToPortal = null;
+  var startPortalCountdown = null;
+  var cancelPortalCountdown = null;
+  var cancelPendingNavigation = null;
 
   function initTransition() {
     var section = document.getElementById('continuum-transition');
@@ -240,6 +243,64 @@
     // stop.
     var DWELL_MS = 3200;
     var DEST = 'https://joinmaie.com/';
+
+    // ── Countdown UI — see the .continuum-portal-countdown CSS comment
+    // for the reasoning. countdownDeadline drives the numeral off a fixed
+    // point in time (Date.now()-based, not a decrementing counter), so a
+    // dropped frame or a throttled background tab can't leave it
+    // reading the wrong number when it catches back up.
+    var countdownEl = document.getElementById('continuum-portal-countdown');
+    var countdownFill = document.getElementById('continuum-portal-countdown-fill');
+    var countdownNum = document.getElementById('continuum-portal-countdown-num');
+    var countdownRaf = null;
+    var countdownDeadline = 0;
+
+    function tickCountdown() {
+      var remaining = countdownDeadline - Date.now();
+      if (countdownNum) countdownNum.textContent = Math.max(1, Math.ceil(remaining / 1000));
+      if (remaining <= 0) { countdownRaf = null; return; }
+      countdownRaf = requestAnimationFrame(tickCountdown);
+    }
+
+    function startCountdown(ms) {
+      if (!countdownEl || reducedMotion) return;
+      countdownDeadline = Date.now() + ms;
+      countdownEl.classList.add('is-active');
+      if (countdownRaf == null) countdownRaf = requestAnimationFrame(tickCountdown);
+      if (countdownFill) {
+        // Force the 0%-width state to actually paint before starting the
+        // real transition — otherwise the browser can coalesce both style
+        // changes into one frame and the fill just appears already full.
+        countdownFill.style.transitionDuration = '0ms';
+        countdownFill.style.width = '0%';
+        countdownFill.getBoundingClientRect();
+        countdownFill.style.transitionDuration = ms + 'ms';
+        countdownFill.style.width = '100%';
+      }
+    }
+
+    function cancelCountdown() {
+      if (countdownEl) countdownEl.classList.remove('is-active');
+      if (countdownFill) {
+        countdownFill.style.transitionDuration = '0ms';
+        countdownFill.style.width = '0%';
+      }
+      if (countdownRaf != null) { cancelAnimationFrame(countdownRaf); countdownRaf = null; }
+    }
+
+    startPortalCountdown = startCountdown;
+    cancelPortalCountdown = cancelCountdown;
+    // engage() (initSurvey, below) needs to stop a navigate that's
+    // already in flight the instant someone taps a survey pill — waiting
+    // for the next render() call (scroll/resize-driven) to notice
+    // surveyEngaged would otherwise mean answering a question while
+    // already at the bottom of the page does nothing to stop a countdown
+    // that's actively ticking, and the page navigates out from under a
+    // reply that's mid-flight.
+    cancelPendingNavigation = function () {
+      if (navigateTimer) { clearTimeout(navigateTimer); navigateTimer = null; }
+      cancelCountdown();
+    };
 
     function go() {
       if (navigated) return;
@@ -279,9 +340,11 @@
 
       if (progress >= 0.98 && !navigated && !navigateTimer && !surveyEngaged) {
         navigateTimer = setTimeout(go, DWELL_MS);
+        startCountdown(DWELL_MS);
       } else if ((progress < 0.98 || surveyEngaged) && navigateTimer) {
         clearTimeout(navigateTimer);
         navigateTimer = null;
+        cancelCountdown();
       }
     }
 
@@ -320,6 +383,7 @@
     function engage() {
       if (surveyEngaged) return;
       surveyEngaged = true;
+      if (cancelPendingNavigation) cancelPendingNavigation();
       track('micro_survey_started');
     }
 
@@ -357,7 +421,9 @@
       // MAIE" link stays the way through.
       surveyEngaged = false;
       if (reducedMotion || !navigateToPortal) return;
-      setTimeout(function () { if (navigateToPortal) navigateToPortal(); }, 1400);
+      var RESUME_MS = 1400;
+      if (startPortalCountdown) startPortalCountdown(RESUME_MS);
+      setTimeout(function () { if (navigateToPortal) navigateToPortal(); }, RESUME_MS);
     }
 
     questions.forEach(function (q, idx) {

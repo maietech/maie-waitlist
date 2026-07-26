@@ -58,6 +58,7 @@
     color: var(--text-1);
     font-family: var(--font-ui);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -199,6 +200,22 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
+  /* body's 64px bottom padding exists to give the pre-signup Assembly
+     card some breathing room above the fold. .continuum-curtain (the
+     full-bleed backdrop for "Welcome.") breaks out of body's left/right
+     padding on purpose (the `left:50%; width:100vw; margin-left:-50vw`
+     trick in its own CSS), but it's sized to exactly match its sticky
+     container's height, not to body's padding — so that trailing 64px
+     was still there *after* the end of the last scene, adding scrollable
+     space nothing in the Continuum accounts for. Scrolling all the way
+     down then oversteps into it: the sticky curtain has nowhere left to
+     stick to, un-pins, and scrolls away, exposing a plain, un-curtained
+     strip at the bottom of "Welcome." — reported as an inconsistent
+     background/gap at the edges of that screen. Dropping the padding
+     for the whole Continuum (not just this one scene) means max scroll
+     always lands exactly at the true end of the last section, so the
+     curtain is guaranteed to still be covering the full viewport there. */
+  body.continuum-active { padding-bottom: 0; }
   .wl-scene {
     position: relative;
     width: 100%; max-width: 480px;
@@ -532,9 +549,29 @@
      content instead of spanning the viewport. */
   #continuum { width: 100%; }
   #continuum.continuum-hidden { display: none; }
-  .continuum-scene { position: relative; height: 260vh; }
+  /* .continuum-scene's height (260vh here, 340/460vh via inline override
+     on Invitation/Journey) is the actual scroll-distance budget for each
+     scene's story beats — story-scroll.js's initScrollScene reads it
+     back via getBoundingClientRect() and divides window.innerHeight into
+     it to get 0..1 progress. On iOS Safari, bare `vh` resolves against
+     the *large* viewport (address bar hidden) while window.innerHeight
+     reports the *current* viewport (address bar however it happens to be
+     right now, usually smaller on first scroll) — two different
+     definitions of "the viewport" feeding the same equation. The result
+     isn't just an inaccuracy, it's a temporary one: window.innerHeight
+     grows to match as the address bar collapses over the first ~100px of
+     scroll, so the mismatch is worst at the exact start of each scene —
+     precisely where Invitation's first line and Pixie are supposed to
+     appear — then quietly resolves itself a bit further in. That reads
+     as "dead space, then a message that flashes by," reported specifically
+     on iPhones. `dvh` tracks the same *current* viewport window.innerHeight
+     already does, so both sides of the equation move together instead of
+     starting from two different baselines. This one rule (and its .sticky
+     partner below) covers Invitation, Journey, and Transition at once —
+     all three are built on this same shared pattern. */
+  .continuum-scene { position: relative; height: 260vh; height: 260dvh; }
   .continuum-sticky {
-    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: 0 24px;
   }
@@ -674,6 +711,48 @@
     opacity: 0; transition: opacity 0.3s ease, color 0.3s ease;
   }
   .continuum-enter-link:hover, .continuum-enter-link:focus-visible { color: var(--primary-light); }
+
+  /* ── Portal countdown — visible confirmation that scrolling to the very
+     end (or finishing/skipping the survey below) has actually started the
+     handoff to joinmaie.com, rather than the page just quietly navigating
+     out from under someone. Hidden and inert by default; continuum.js
+     toggles .is-active and drives both the numeral and the fill bar's
+     width whenever a navigation timer is actually pending, and reverses
+     both the instant that timer's cancelled (e.g. scrolling back up). The
+     one thing it deliberately doesn't do is re-announce itself every
+     second: the aria-live text is static ("Continuing to MAIE…"), and the
+     ticking numeral is aria-hidden, so a screen reader hears this once
+     when it starts, not once per second. Never shown under reduced
+     motion or on the static per-scene snapshot call — see initTransition,
+     which never schedules the timer this reflects in either case. */
+  .continuum-portal-countdown {
+    position: relative; z-index: 2;
+    max-height: 0; margin-top: 0; overflow: hidden;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s var(--ease-cinema), max-height 0.35s var(--ease-cinema), margin-top 0.35s var(--ease-cinema);
+  }
+  .continuum-portal-countdown.is-active {
+    max-height: 60px; margin-top: 20px; opacity: 1;
+  }
+  .continuum-portal-countdown-label {
+    display: block;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-2);
+  }
+  .continuum-portal-countdown-num { color: var(--primary-light); font-variant-numeric: tabular-nums; }
+  .continuum-portal-countdown-track {
+    display: block; margin-top: 10px;
+    width: 100%; max-width: 160px; height: 2px; border-radius: 2px;
+    background: var(--border, rgba(255,255,255,0.16)); overflow: hidden;
+  }
+  .continuum-portal-countdown-fill {
+    display: block; height: 100%; width: 0%;
+    background: var(--primary-light);
+    transition: width linear;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .continuum-portal-countdown { display: none; }
+  }
 
   /* ── Scene 4.5: "Help us build MAIE" — optional 3-question micro-survey.
      Deliberately not another form: one question visible at a time, tap a
@@ -867,7 +946,7 @@
 <!-- ── The Continuum — Scenes 2-4, kept out of layout (display:none via
      .continuum-hidden) until a signup succeeds. See continuum.js. -->
 <div id="continuum" class="continuum-hidden">
-  <section class="continuum-scene" id="continuum-invitation" style="height: 340vh;">
+  <section class="continuum-scene" id="continuum-invitation" style="height: 340vh; height: 340dvh;">
     <div class="continuum-sticky">
       <canvas class="continuum-pixie-canvas" id="continuum-pixie-canvas"></canvas>
       <p class="continuum-invite-line" id="continuum-invite-line">Stories aren't watched.<br>They're entered.</p>
@@ -875,13 +954,13 @@
     </div>
   </section>
 
-  <section class="continuum-scene" id="continuum-journey" style="height: 460vh;">
+  <section class="continuum-scene" id="continuum-journey" style="height: 460vh; height: 460dvh;">
     <div class="continuum-sticky">
       <p class="continuum-journey-line" id="continuum-journey-line"></p>
     </div>
   </section>
 
-  <section class="continuum-scene" id="continuum-transition" style="height: 260vh;">
+  <section class="continuum-scene" id="continuum-transition" style="height: 260vh; height: 260dvh;">
     <div class="continuum-sticky">
       <div class="continuum-curtain" id="continuum-curtain"></div>
 
@@ -926,6 +1005,13 @@
         </div>
 
         <a class="continuum-enter-link" id="continuum-enter-link" href="https://joinmaie.com/">Continue to MAIE →</a>
+
+        <div class="continuum-portal-countdown" id="continuum-portal-countdown" aria-live="polite">
+          <span class="continuum-portal-countdown-label">
+            Continuing to MAIE in <span class="continuum-portal-countdown-num" id="continuum-portal-countdown-num" aria-hidden="true">3</span>…
+          </span>
+          <span class="continuum-portal-countdown-track" aria-hidden="true"><span class="continuum-portal-countdown-fill" id="continuum-portal-countdown-fill"></span></span>
+        </div>
       </div>
     </div>
   </section>
