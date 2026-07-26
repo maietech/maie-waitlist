@@ -644,53 +644,50 @@
      left:50%/width:100vw/margin-left:-50vw is the standard "breakout"
      fix — it centers a 100vw-wide box regardless of any ancestor's own
      width or padding, so it always spans the true viewport width. */
+  /* The curtain used to be a flat, fully opaque `background: var(--bg)`
+     layer — at full weight it read as a solid rectangle dropped on top
+     of the page rather than the page's own background taking over, the
+     "black box" look. It's now a translucent tint plus its own
+     backdrop-filter blur: color-mix leaves ~16% of whatever is behind it
+     (the orbs, grain, haze) showing through, softened by the blur, so
+     even at full opacity the curtain reads as "the rest of the scene
+     gone soft," not as an opaque card. Because this is the curtain
+     element's own opacity fading in 0→1 (see continuum.js), the tint and
+     blur ease in together — there's no separate ramp to keep in sync. */
   .continuum-curtain {
     position: absolute; top: 0; bottom: 0;
     left: 50%; width: 100vw; margin-left: -50vw;
-    z-index: 1; background: var(--bg); opacity: 0;
+    z-index: 1;
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    opacity: 0;
   }
 
   /* --continuum-curtain (0→1) mirrors .continuum-curtain's own opacity —
      set alongside it in continuum.js's initTransition render(). .continuum-haze
-     is multiplied by (1 - that value) here so the ambient haze/blur fades
-     OUT in lockstep as the curtain fades in, reaching 0 well before the
-     clarity panel appears. This was previously "fixed" by promoting the
-     sticky container's z-index above the haze's — that also stops the
-     haze blurring the panel, but as an unwanted side effect it also
-     exposes .continuum-curtain (a flat, fully opaque rectangle) with
-     nothing blended over it anymore, which reads as a big flat black
-     box. Fading the haze's own strength to zero instead leaves the
-     curtain's rendering untouched and simply removes the haze as a
-     factor before it matters.
+     is still multiplied by (1 - that value) here so the *ambient* haze
+     bloom (the radial-gradient glow, not blur duty) hands off to the
+     curtain rather than doubling up with it. Blur duty itself now lives
+     on the curtain (its own backdrop-filter, above), so letting the haze's
+     glow fade out doesn't flatten anything the way it used to when the
+     curtain had no blur of its own to fall back on.
 
-     The curtain's own fade-in (see continuum.js) was also widened to
-     ramp up across most of the scene rather than a short window near the
-     end — a full-bleed rectangle still reads as "a box appearing" if it
-     snaps to solid too quickly; spreading the same fade over more scroll
-     distance makes it read as the background gradually taking over. */
+     The curtain's own fade-in (see continuum.js) is widened to ramp up
+     across most of the scene rather than a short window near the end —
+     even a soft, translucent layer still reads as "something arriving"
+     if it snaps in too quickly; spreading the same fade over more scroll
+     distance makes it read as the background gradually going soft. */
 
-  /* ── The clarity panel — deliberately the one un-hazy, un-blurred thing
-     in the whole Continuum. Everything before this point gets moodier as
-     you go (see --continuum-atmosphere below); this is the arrival point.
-
-     It used to render as a bordered, drop-shadowed --surface card (92%
-     opacity + backdrop-filter blur) sitting on top of the curtain, on the
-     theory that it needed its own opaque-ish surface to stay clear of the
-     haze. In practice the haze is already crossfaded to exactly 0 by the
-     time this panel starts to appear (--continuum-curtain reaches full
-     weight at progress 0.35; clarity doesn't even start fading in until
-     0.48 — see continuum.js's initTransition), so that opaque surface was
-     never actually doing any anti-blur work. What it *was* doing: sitting
-     at --surface (a distinctly lighter dark-grey than --bg) on top of a
-     flat --bg curtain, which reads as a separate floating card rather than
-     the arrival point of the same page — a rounded, shadowed rectangle
-     hanging in a solid void. Dropping the fill/border/shadow/blur
-     entirely lets this panel's content sit directly on the curtain, which
-     is the same --bg as the rest of the page, so there's nothing left to
-     look inconsistent. Nothing here was ever blurring its own children
-     (backdrop-filter only ever blurred what's behind an element, never
-     its contents) — the survey and "Welcome." stay exactly as sharp as
-     before, just without the mismatched backdrop under them. */
+  /* ── The clarity panel — the one crisp thing in the whole Continuum.
+     Everything around it (orbs, grain, haze) sits behind the curtain's
+     own blur; this panel sits on TOP of the curtain in z-index and has no
+     background, border, shadow, or blur of its own, so nothing here
+     softens it. backdrop-filter only ever blurs what's behind an element,
+     never its own contents, so the survey and "Welcome." stay exactly as
+     sharp as the rest of the page's text — this is deliberately a
+     transparent window onto the curtain, not a second surface stacked on
+     top of it, which is what kept reading as a floating card. */
   .continuum-clarity {
     position: relative; z-index: 3;
     padding: 44px 40px;
