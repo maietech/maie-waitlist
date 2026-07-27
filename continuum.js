@@ -85,20 +85,32 @@
   function initAtmosphere() {
     var root = document.getElementById('continuum');
     if (!root) return;
-    var ticking = false;
-    function compute() {
+    var p = 0;
+    var lastWritten = null;
+
+    function read() {
       var rect = root.getBoundingClientRect();
       var vh = window.innerHeight;
       var total = rect.height + vh;
       var traveled = vh - rect.top;
-      var p = total > 0 ? Math.min(1, Math.max(0, traveled / total)) : 0;
-      document.documentElement.style.setProperty('--continuum-atmosphere', p.toFixed(3));
-      ticking = false;
+      p = total > 0 ? Math.min(1, Math.max(0, traveled / total)) : 0;
     }
-    function onScroll() { if (!ticking) { requestAnimationFrame(compute); ticking = true; } }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    compute();
+    // .continuum-haze's backdrop-filter blur (index.html) reads this var
+    // every time it changes, and a full-viewport backdrop-filter is one of
+    // the more GPU-expensive things a browser can be asked to recompute —
+    // full precision here would mean redoing that blur on every
+    // fractional-pixel scroll delta for no visible difference. Rounding to
+    // the nearest 0.01 and skipping the write entirely when that rounded
+    // value hasn't moved cuts that recompute rate without changing what's
+    // on screen (a 0.01 step is under a third of a pixel of blur radius).
+    function write() {
+      var quantized = Math.round(p * 100) / 100;
+      if (quantized === lastWritten) return;
+      lastWritten = quantized;
+      document.documentElement.style.setProperty('--continuum-atmosphere', quantized.toFixed(2));
+    }
+
+    window.registerScrollBatch(read, write);
   }
 
   // ── Scene 2: The Invitation — Pixie appears, observes, says one thing,
@@ -249,6 +261,7 @@
 
     var navigateTimer = null;
     var navigated = false;
+    var lastCurtainWritten = null;
     // Long enough that an unengaged visitor who just kept scrolling
     // actually gets to read "Welcome." and notice the survey before the
     // page moves on without them — the previous 1s meant most people
@@ -332,11 +345,18 @@
       // more of the scene's scroll distance makes it read as the
       // background gradually taking over rather than popping in.
       var curtainWeight = window.storyStageWeight(progress, 0.35, 1.00, 0.35, 0);
-      curtain.style.opacity = curtainWeight;
+      curtain.style.opacity = curtainWeight; // cheap: opacity is compositor-only, updates every tick same as before
       // Drives the haze cross-fade in .continuum-haze's CSS (index.html) —
       // the haze fades out as this fades in, so by the time the curtain is
-      // visible the haze is contributing nothing to blur.
-      document.documentElement.style.setProperty('--continuum-curtain', curtainWeight);
+      // visible the haze is contributing nothing to blur. Quantized like
+      // --continuum-atmosphere above, for the same reason: this feeds a
+      // full-viewport backdrop-filter blur, which is worth not recomputing
+      // on every one of the ~60 rAF ticks/sec this scene's pacing loop runs.
+      var quantizedCurtain = Math.round(curtainWeight * 100) / 100;
+      if (quantizedCurtain !== lastCurtainWritten) {
+        lastCurtainWritten = quantizedCurtain;
+        document.documentElement.style.setProperty('--continuum-curtain', quantizedCurtain.toFixed(2));
+      }
       // The panel leads — it materializes first, then Welcome and the
       // survey fade in on top of it, so it never reads as text appearing
       // on top of the still-hazy backdrop.

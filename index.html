@@ -355,7 +355,7 @@
     margin: 0; padding: 6px; list-style: none;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.28);
-    max-height: 240px; overflow-y: auto;
+    max-height: 240px; overflow-y: auto; overscroll-behavior: contain;
     opacity: 0; transform: translateY(-4px); pointer-events: none;
     transition: opacity 0.18s var(--ease-cinema), transform 0.18s var(--ease-cinema);
   }
@@ -433,7 +433,7 @@
      / bottom-right the way the brand and pitch link sit top-left /
      top-right. */
   .wl-corner {
-    position: fixed; bottom: 20px; z-index: 3;
+    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 3;
     font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--text-2); text-decoration: none;
     opacity: 0.45; background: none; border: none; padding: 0; cursor: pointer;
@@ -445,8 +445,8 @@
      24px from the edge, half of it ran past the viewport edge. Moving
      both links in by the same amount (rather than only this one) keeps
      them equal-distance from their respective corners. */
-  .wl-corner-skip { left: 64px; }
-  .wl-corner-gh { right: 64px; }
+  .wl-corner-skip { left: calc(64px + env(safe-area-inset-left, 0px)); }
+  .wl-corner-gh { right: calc(64px + env(safe-area-inset-right, 0px)); }
   .wl-corner[data-hint]::after { top: auto; bottom: 100%; transform: translate(-50%, -2px); }
   .wl-corner[data-hint]:hover::after { transform: translate(-50%, -8px); }
 

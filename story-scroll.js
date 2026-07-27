@@ -7,6 +7,51 @@
 // reported once as 1 (final/settled state) and never updates again —
 // no continuous animation loop runs at all.
 
+// Shared scroll-batch registry — one scroll/resize listener for every
+// consumer on the page (this file's story-scenes, plus continuum.js's
+// atmosphere read) instead of each registering its own. Every consumer's
+// "read" (getBoundingClientRect, etc.) runs before any consumer's "write"
+// (a style/CSS-var mutation), so N scenes reacting to the same scroll
+// event can never interleave into a read-write-read-write layout-thrash
+// pattern — that ordering is guaranteed structurally here, not by each
+// call site happening to write only inside its own later rAF tick.
+// Defined once, on first load of this file (story-scroll.js loads before
+// continuum.js — see index.html), so any file loaded after it can rely
+// on window.registerScrollBatch existing.
+window.registerScrollBatch = window.registerScrollBatch || (function () {
+  var reads = [];
+  var writes = [];
+  var listening = false;
+
+  function runBatch() {
+    for (var i = 0; i < reads.length; i++) reads[i]();
+    for (var i = 0; i < writes.length; i++) writes[i]();
+  }
+  function ensureListening() {
+    if (listening) return;
+    listening = true;
+    window.addEventListener('scroll', runBatch, { passive: true });
+    window.addEventListener('resize', runBatch);
+  }
+
+  return function registerScrollBatch(read, write) {
+    ensureListening();
+    reads.push(read);
+    writes.push(write);
+    // Fire once immediately, matching the old per-instance
+    // addEventListener-then-call-once behavior each consumer used to
+    // have on its own — a scene mounted mid-page (e.g. the Continuum,
+    // mounted lazily on signup) needs a correct initial value before
+    // the next real scroll/resize event, not just whenever one happens.
+    read();
+    write();
+    return function unregister() {
+      var ri = reads.indexOf(read); if (ri !== -1) reads.splice(ri, 1);
+      var wi = writes.indexOf(write); if (wi !== -1) writes.splice(wi, 1);
+    };
+  };
+})();
+
 window.initScrollScene = function (sectionEl, onProgress) {
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced) { onProgress(1, true); return function () {}; }
@@ -65,37 +110,20 @@ window.initScrollScene = function (sectionEl, onProgress) {
     if (!running) { running = true; raf = requestAnimationFrame(tick); }
   }
 
-  function onScrollOrResize() { computeTarget(); ensureRunning(); }
-
-  // Routed through reveal.js's shared scroll-batch registry (all
-  // registered reads run before any writes, across every module using it)
-  // instead of each of up to 7 story-scenes running its own independent
-  // scroll listener with its own interleaved read-then-write — found in
-  // the pre-production audit's scroll-jank profile as one of the top
-  // contributors. computeTarget is the "read"; ensureRunning is the
-  // "write" — it just (re)starts the local catch-up loop above if it
-  // isn't already running. The actual per-frame onProgress calls happen
-  // inside tick(), on their own requestAnimationFrame cadence, since the
-  // whole point of the pacing above is that it keeps animating even once
-  // scroll input (and therefore the batcher) has gone quiet. reveal.js
-  // loads before this file, so registerScrollBatch is always available
-  // in practice; the fallback below preserves the original
-  // per-instance-listener behavior if that ever changes, so this
-  // function stays correct standalone too.
-  if (window.registerScrollBatch) {
-    window.registerScrollBatch(computeTarget, ensureRunning);
-  } else {
-    window.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
-  }
-  computeTarget();
-  ensureRunning();
+  // Routed through the shared scroll-batch registry above (all registered
+  // reads run before any writes, across every module using it) instead of
+  // each story-scene running its own independent scroll listener with its
+  // own interleaved read-then-write. computeTarget is the "read";
+  // ensureRunning is the "write" — it just (re)starts the local catch-up
+  // loop above if it isn't already running. The actual per-frame
+  // onProgress calls happen inside tick(), on their own
+  // requestAnimationFrame cadence, since the whole point of the pacing
+  // above is that it keeps animating even once scroll input (and
+  // therefore the batcher) has gone quiet.
+  var unregister = window.registerScrollBatch(computeTarget, ensureRunning);
 
   return function destroy() {
-    if (!window.registerScrollBatch) {
-      window.removeEventListener('scroll', onScrollOrResize);
-      window.removeEventListener('resize', onScrollOrResize);
-    }
+    unregister();
     running = false;
     if (raf != null) cancelAnimationFrame(raf);
   };
