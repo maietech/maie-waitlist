@@ -809,6 +809,9 @@
 </div>
 <div class="wl-bloom"></div>
 <div class="wl-grain"></div>
+<!-- #river-atmosphere (canvas) is inserted here, right before the haze,
+     by river-atmosphere.js's mount() — only once a signup succeeds. See
+     "The River Finds You" in continuum.js / river-atmosphere.js. -->
 <div class="continuum-haze"></div>
 
 <header class="wl-header">
@@ -929,7 +932,7 @@
     </form>
     </div>
 
-    <div class="wl-threshold" id="continuum-threshold">
+    <div class="wl-threshold" id="continuum-threshold" data-river-density="quiet">
       <h2 class="wl-threshold-headline" id="continuum-threshold-headline">You're in.</h2>
       <p class="wl-threshold-hint" id="continuum-threshold-hint">Keep scrolling</p>
     </div>
@@ -943,7 +946,7 @@
      .continuum-hidden) until a signup succeeds. See continuum.js. -->
 <div id="continuum" class="continuum-hidden">
   <section class="continuum-scene" id="continuum-invitation" style="height: 340vh; height: 340dvh;">
-    <div class="continuum-sticky">
+    <div class="continuum-sticky" data-river-density="narrative">
       <canvas class="continuum-pixie-canvas" id="continuum-pixie-canvas"></canvas>
       <p class="continuum-invite-line" id="continuum-invite-line">Stories aren't watched.<br>They're entered.</p>
       <p class="continuum-invite-evolve" id="continuum-invite-evolve"></p>
@@ -951,13 +954,13 @@
   </section>
 
   <section class="continuum-scene" id="continuum-journey" style="height: 460vh; height: 460dvh;">
-    <div class="continuum-sticky">
+    <div class="continuum-sticky" data-river-density="quiet">
       <p class="continuum-journey-line" id="continuum-journey-line"></p>
     </div>
   </section>
 
   <section class="continuum-scene" id="continuum-transition" style="height: 260vh; height: 260dvh;">
-    <div class="continuum-sticky">
+    <div class="continuum-sticky" data-river-density="cinematic">
       <div class="continuum-curtain" id="continuum-curtain"></div>
 
       <div class="continuum-clarity" id="continuum-clarity">
@@ -1016,6 +1019,7 @@
 <script src="/telemetry.js"></script>
 <script src="/story-scroll.js"></script>
 <script src="/pixie-companion.js"></script>
+<script src="/river-atmosphere.js"></script>
 <script>
   // ── Theme toggle ──────────────────────────────────────────────────
   (function () {

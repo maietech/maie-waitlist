@@ -70,10 +70,22 @@
     }, reducedMotion ? 0 : 900);
 
     initAtmosphere();
+    if (window.MaieRiver) window.MaieRiver.mount();
     initInvitation();
     initJourney();
     initTransition();
     initSurvey();
+  }
+
+  // Living Water helper — spawns an echo at an element's current
+  // on-screen center. Used at quiet beats (an evolve-line flashing in,
+  // an intertitle handing off to the next) so a scene's trace dissolves
+  // into the Current instead of just disappearing. Safe to call even if
+  // the river hasn't mounted (e.g. reduced motion) — echo() no-ops itself.
+  function echoFromEl(el) {
+    if (!el || !window.MaieRiver) return;
+    var r = el.getBoundingClientRect();
+    window.MaieRiver.echo(r.left + r.width / 2, r.top + r.height / 2);
   }
 
   // ── Environmental storytelling ───────────────────────────────────────
@@ -188,6 +200,7 @@
             evolve.classList.remove('continuum-flash');
             void evolve.offsetWidth;
             evolve.classList.add('continuum-flash');
+            echoFromEl(evolve);
           }
           if (pixieHandle && pixieHandle.update) pixieHandle.update({ temperament: s.temperament });
         }
@@ -224,8 +237,24 @@
         var w = window.storyStageWeight(progress, l.start, l.end, 0.03, 0.03);
         if (w > topW) { topW = w; top = i; }
       });
-      if (top !== activeIdx) { activeIdx = top; el.innerHTML = LINES[top].text; }
+      if (top !== activeIdx) {
+        activeIdx = top;
+        // The outgoing line dissolves into the Current rather than just
+        // being overwritten — a Living Water echo at the same spot,
+        // fired the instant the new line takes over.
+        echoFromEl(el);
+        el.innerHTML = LINES[top].text;
+      }
       el.style.opacity = topW;
+
+      // Rapids + Convergence: "almost imperceptibly, the river changes."
+      // Held flat through the first half of the Journey, then momentum
+      // climbs across the back half as the intertitles build toward
+      // "You're not waiting. You're arriving." — the Current quickens
+      // and its waveform fragments begin folding into a shared lane
+      // right as the copy itself starts talking about arrival.
+      if (window.MaieRiver) window.MaieRiver.setMomentum(Math.max(0, (progress - 0.55) / 0.45));
+
       if (progress >= 0.98 && !completedTracked) {
         completedTracked = true;
         track('journey_completed');
@@ -364,6 +393,17 @@
       if (welcome) welcome.style.opacity = window.storyStageWeight(progress, 0.72, 1.00, 0.12, 0);
       if (link) link.style.opacity = window.storyStageWeight(progress, 0.86, 1.00, 0.10, 0);
       if (survey) survey.style.opacity = window.storyStageWeight(progress, 0.80, 1.00, 0.12, 0);
+
+      // Rapids carries over from the Journey scene and holds through
+      // most of the Transition, then eases back down across the last
+      // stretch — "immediately before arrival, everything settles. Like
+      // water becoming calm again after passing through rapids." The
+      // curtain's own [data-river-density="cinematic"] tag (index.html)
+      // is already fading the Current's visibility to near-nothing here;
+      // this only governs how fast it's moving underneath that fade.
+      if (window.MaieRiver) {
+        window.MaieRiver.setMomentum(progress < 0.80 ? 1 : Math.max(0, 1 - (progress - 0.80) / 0.20));
+      }
 
       // Reduced motion (and the one-shot static call every scene gets)
       // renders the settled curtain + panel + Welcome + link above, but

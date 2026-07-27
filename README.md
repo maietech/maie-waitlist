@@ -17,6 +17,7 @@ migrations/0002_demand_engine.sql   non-destructive upgrade path for an existing
 wrangler.toml                  local dev config / D1 binding reference
 telemetry.js                   session id + UTM/referral capture + event beacon — loads first
 continuum.js                   post-signup cinematic sequence — see below
+river-atmosphere.js            the Continuum's atmospheric layer, "The River Finds You" — see below
 pixie-companion.js             ported verbatim from joinmaie-landing, unmodified
 story-scroll.js                ported verbatim from joinmaie-landing, unmodified
 ```
@@ -68,6 +69,45 @@ navigation after a short dwell (manual link only under
 `--primary*` names for the same colors, so `index.html`'s `:root` aliases
 `--brand`/`--brand-light`/`--brand-glow` to the existing `--primary*`
 values rather than forking the engine or renaming either side.
+
+## The River
+
+`river-atmosphere.js` is the Continuum's dedicated atmospheric layer —
+the design direction internally called "The River Finds You." It's a
+single `<canvas>`, inserted into the page (right before `.continuum-haze`)
+only when `continuum.js`'s `begin()` calls `MaieRiver.mount()`, so a
+visitor who never signs up never pays for it.
+
+Three systems, matching the design doc:
+- **The Current** — waveform fragments, pulses, and destination nodes
+  drift downward at all times, independent of scroll. Scrolling briefly
+  strengthens the current (a decaying multiplier tied to scroll delta);
+  it always settles back to its resting pace on its own.
+- **Living Water** — `continuum.js` calls `MaieRiver.echo(x, y)` at quiet
+  beats (an evolve-line flashing in during the Invitation scene, an
+  intertitle handing off to the next during the Journey scene) so that
+  moment dissolves into the Current instead of just disappearing.
+- **Rapids + Convergence** — `continuum.js` calls `MaieRiver.setMomentum(0..1)`,
+  ramping it up across the back half of the Journey scene and holding it
+  through most of the Transition scene before easing it back to 0 right
+  before the curtain completes. Momentum speeds up the Current, widens
+  parallax depth, brightens reflections, and gradually bends waveform
+  fragments toward a shared lane (Convergence) — then everything settles
+  again right before arrival.
+
+Density (`quiet` / `narrative` / `cinematic`) is content-adaptive:
+`index.html` tags each scene's sticky panel with
+`data-river-density="…"`, and `river-atmosphere.js` watches all of them
+with one `IntersectionObserver`, fading or intensifying the whole layer
+toward whichever tagged panel is currently most visible rather than
+using one fixed global opacity.
+
+Every particle's shape, lane, and phase come from a fixed hash of its
+index, never `Math.random()` — the same visitor sees the same
+handcrafted flow every time, not a fresh scatter on reload. Motion is
+canvas 2D redraws driven by `requestAnimationFrame`, not scroll-jacking.
+Under `prefers-reduced-motion`, it renders one settled frame at low
+density and never starts the animation loop at all.
 
 ## One-time setup in the Cloudflare dashboard
 
