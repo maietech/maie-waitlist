@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MAIE — Join the Waitlist</title>
-<meta name="description" content="Be first in line for MAIE — the AI-native media production suite. Join the waitlist.">
+<meta name="description" content="MAIE is live — the AI-native media production suite for filmmakers and content studios. Sign up today, or join the waitlist for updates.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -244,6 +244,11 @@
     animation: fadeUp 0.5s var(--ease-cinema) forwards;
     animation-delay: 0.55s;
   }
+  .wl-live-link {
+    color: var(--primary-light); font-weight: 600; text-decoration: none;
+    border-bottom: 1px solid currentColor; transition: color 0.3s ease, opacity 0.3s ease;
+  }
+  .wl-live-link:hover, .wl-live-link:focus-visible { opacity: 0.85; }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -844,7 +849,7 @@
     <div class="wl-form-stage" id="wl-form-stage">
     <div class="wl-tag">MAIE — Early Access</div>
     <h1>Join the waitlist</h1>
-    <p class="wl-sub">Be first in line when MAIE opens up. A few details help us prioritize the right people first.</p>
+    <p class="wl-sub">MAIE is live today. Join here for updates, or skip ahead — <a class="wl-live-link" href="https://app.joinmaie.com/signup">sign up now →</a></p>
     <p class="wl-cue">Not a form. A beginning.</p>
 
     <form id="wl-form" novalidate>
